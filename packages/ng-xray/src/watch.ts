@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import type { Diagnostic, ScanOptions } from './types.js';
 import { scan } from './scan.js';
 import { logger } from './utils/logger.js';
@@ -45,7 +46,20 @@ const printWatchDelta = (score: number, added: Diagnostic[], removed: Diagnostic
   }
 };
 
-export const startWatch = async (directory: string, options: ScanOptions): Promise<void> => {
+export const resolveWatchPath = (
+  directory: string,
+  sourceRoot?: string,
+): string => {
+  if (sourceRoot) return sourceRoot;
+  const conventionalSrc = path.join(directory, 'src');
+  return existsSync(conventionalSrc) ? conventionalSrc : directory;
+};
+
+export const startWatch = async (
+  directory: string,
+  options: ScanOptions,
+  sourceRoot?: string,
+): Promise<void> => {
   let chokidar: typeof import('chokidar');
   try {
     chokidar = await import('chokidar');
@@ -70,8 +84,8 @@ export const startWatch = async (directory: string, options: ScanOptions): Promi
   logger.log('Running initial scan...');
   await runAndDiff();
 
-  const srcDir = path.join(directory, 'src');
-  const watcher = chokidar.watch(srcDir, {
+  const watchPath = resolveWatchPath(directory, sourceRoot);
+  const watcher = chokidar.watch(watchPath, {
     ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
     ignoreInitial: true,
     persistent: true,

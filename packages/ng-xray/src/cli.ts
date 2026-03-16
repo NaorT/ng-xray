@@ -5,7 +5,7 @@ import { Command } from 'commander';
 import { EXIT_CODES, VERSION } from './constants.js';
 import { applyOutputSideEffects, type OutputMode } from './cli-output.js';
 import { discoverProject } from './detection/discover-project.js';
-import { detectWorkspace, resolveProjectDirectory } from './detection/detect-workspace.js';
+import { detectWorkspace, resolveProjectDirectory, resolveWorkspaceProject } from './detection/detect-workspace.js';
 import { generateHtmlReport } from './report/html.js';
 import { generateSarif } from './report/sarif.js';
 import { generatePrSummary } from './report/pr-summary.js';
@@ -81,6 +81,7 @@ program
       const resolvedDir = path.resolve(directory);
       const workspace = detectWorkspace(resolvedDir);
       const outputMode = getOutputMode(flags);
+      const workspaceProject = resolveWorkspaceProject(workspace, flags.project);
 
       if (workspace.projects.length > 1 && !flags.project) {
         const names = workspace.projects.map(p => p.name).join(', ');
@@ -106,7 +107,7 @@ program
 
       if (flags.watch) {
         const { startWatch } = await import('./watch.js');
-        await startWatch(scanDir, scanOptions);
+        await startWatch(scanDir, scanOptions, workspaceProject.sourceRoot);
         return;
       }
 

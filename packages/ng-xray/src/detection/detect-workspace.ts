@@ -71,14 +71,20 @@ export const detectWorkspace = (directory: string): WorkspaceInfo => {
 export const resolveProjectDirectory = (
   workspace: WorkspaceInfo,
   projectName?: string,
-): string => {
+): string =>
+  resolveWorkspaceProject(workspace, projectName).root;
+
+export const resolveWorkspaceProject = (
+  workspace: WorkspaceInfo,
+  projectName?: string,
+): WorkspaceProject => {
   if (!projectName) {
-    if (workspace.projects.length === 1) return workspace.projects[0].root;
+    if (workspace.projects.length === 1) return workspace.projects[0];
     if (workspace.defaultProject) {
       const found = workspace.projects.find(p => p.name === workspace.defaultProject);
-      if (found) return found.root;
+      if (found) return found;
     }
-    return workspace.projects[0].root;
+    return workspace.projects[0];
   }
 
   const found = workspace.projects.find(p => p.name === projectName);
@@ -88,5 +94,5 @@ export const resolveProjectDirectory = (
       `Project "${projectName}" not found in workspace. Available projects: ${available}`,
     );
   }
-  return found.root;
+  return found;
 };

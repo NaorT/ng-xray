@@ -41,18 +41,42 @@ const HELP_MAP: Record<string, string> = {
   NG8111: 'This function is referenced in an event binding but not invoked. Add () to call it.',
 };
 
-const resolveNgcBinary = (directory: string): string | null => {
-  const localNgc = path.join(directory, 'node_modules', '.bin', 'ngc');
-  if (existsSync(localNgc)) return localNgc;
-  return null;
+const findUp = (
+  directory: string,
+  resolveCandidate: (current: string) => string | null,
+): string | null => {
+  let current = path.resolve(directory);
+  while (true) {
+    const candidate = resolveCandidate(current);
+    if (candidate) return candidate;
+
+    const parent = path.dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
 };
 
-const resolveTsConfig = (directory: string): string | null => {
-  for (const name of ['tsconfig.app.json', 'tsconfig.json']) {
-    const full = path.join(directory, name);
-    if (existsSync(full)) return full;
-  }
-  return null;
+const resolveNgcBinary = (directory: string): string | null =>
+  findUp(directory, (current) => {
+    const localNgc = path.join(current, 'node_modules', '.bin', 'ngc');
+    return existsSync(localNgc) ? localNgc : null;
+  });
+
+const resolveTsConfig = (directory: string): string | null =>
+  findUp(directory, (current) => {
+    for (const name of ['tsconfig.app.json', 'tsconfig.lib.json', 'tsconfig.json']) {
+      const full = path.join(current, name);
+      if (existsSync(full)) return full;
+    }
+    return null;
+  });
+
+export const resolveAngularCompilerContext = (
+  directory: string,
+): { ngcBinary: string; tsConfig: string } | null => {
+  const ngcBinary = resolveNgcBinary(directory);
+  const tsConfig = resolveTsConfig(directory);
+  return ngcBinary && tsConfig ? { ngcBinary, tsConfig } : null;
 };
 
 const parseDiagnosticOutput = (output: string): ParsedDiagnostic[] => {

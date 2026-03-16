@@ -8,6 +8,10 @@ interface PackageJson {
   devDependencies?: Record<string, string>;
 }
 
+interface PackageContext {
+  pkg: PackageJson;
+}
+
 const readPackageJson = (directory: string): PackageJson | null => {
   const pkgPath = path.join(directory, 'package.json');
   if (!existsSync(pkgPath)) return null;
@@ -28,6 +32,28 @@ const getAngularVersion = (pkg: PackageJson): string | null => {
 const hasPackage = (pkg: PackageJson, name: string): boolean => {
   const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
   return name in allDeps;
+};
+
+const findPackageContext = (directory: string): PackageContext | null => {
+  let current = path.resolve(directory);
+  let fallback: PackageContext | null = null;
+
+  while (true) {
+    const pkg = readPackageJson(current);
+    if (pkg) {
+      const context = { pkg };
+      fallback ??= context;
+      if (getAngularVersion(pkg)) {
+        return context;
+      }
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return fallback;
+    }
+    current = parent;
+  }
 };
 
 const countSourceFiles = (directory: string, extensions: string[]): number => {
@@ -137,7 +163,8 @@ const detectSignalsUsage = (directory: string): boolean => {
 };
 
 export const discoverProject = (directory: string): ProjectInfo => {
-  const pkg = readPackageJson(directory);
+  const packageContext = findPackageContext(directory);
+  const pkg = packageContext?.pkg ?? null;
   const projectName = pkg?.name ?? path.basename(directory);
   const angularVersion = pkg ? getAngularVersion(pkg) : null;
   const hasSSR = pkg ? hasPackage(pkg, '@angular/ssr') || hasPackage(pkg, '@nguniversal/express-engine') : false;

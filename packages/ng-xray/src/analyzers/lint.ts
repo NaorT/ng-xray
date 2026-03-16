@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Diagnostic, DiagnosticSource } from '../types.js';
 import { logger } from '../utils/logger.js';
+import { walkFiles } from '../utils/walk.js';
 
 const ESLINT_CONFIG_FILES = [
   'eslint.config.js',
@@ -164,8 +165,6 @@ const mapResultsToDiagnostics = (
       })),
   );
 
-export type LintMode = 'ingest' | 'built-in';
-
 export const runLintAnalyzer = async (directory: string): Promise<Diagnostic[]> => {
   const configPath = detectEslintConfig(directory);
 
@@ -180,10 +179,15 @@ export const runLintAnalyzer = async (directory: string): Promise<Diagnostic[]> 
   }
 
   const srcDir = path.join(directory, 'src');
-  const patterns = existsSync(srcDir)
-    ? ['src/**/*.ts', 'src/**/*.html']
-    : ['**/*.ts', '**/*.html'];
+  const targetDir = existsSync(srcDir) ? srcDir : directory;
+  const files = [
+    ...walkFiles(targetDir, ['.ts']).map((filePath) => path.relative(directory, filePath)),
+    ...walkFiles(targetDir, ['.html'], { skipDeclarations: false }).map((filePath) => path.relative(directory, filePath)),
+  ];
+  if (files.length === 0) {
+    return [];
+  }
 
-  const results = await eslint.lintFiles(patterns);
+  const results = await eslint.lintFiles(files);
   return mapResultsToDiagnostics(results, directory);
 };

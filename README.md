@@ -387,6 +387,8 @@ ng-xray detects Angular workspaces via `angular.json`:
 npx ng-xray . --project my-app
 ```
 
+Watch mode follows the selected project's configured source root when available, and falls back to the project root for layouts without a `src/` directory.
+
 ## Supported Project Shapes
 
 - Standard Angular CLI app (`src/app/`)
@@ -394,6 +396,7 @@ npx ng-xray . --project my-app
 - Projects without `src/` directory (analyzers auto-detect)
 - Angular CLI multi-project workspaces (`angular.json`)
 - Nx workspaces (detected via `nx.json`)
+- Workspace projects whose Angular dependencies live at the workspace root
 - Libraries with `src/` directory
 
 ## Requirements

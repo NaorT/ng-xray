@@ -47,4 +47,12 @@ describe('scan', () => {
     expect(result.analyzerRuns.find((run) => run.id === 'performance')?.status).toBe('ran');
     expect(result.analyzerRuns.find((run) => run.id === 'lazy-loading')?.status).toBe('ran');
   });
+
+  it('scans projects that do not use a src directory', async () => {
+    const result = await scan(fixtureDir('no-src-dir'), {}, true);
+
+    expect(result.project.angularVersion).toBe('19.0.0');
+    expect(result.project.sourceFileCount).toBeGreaterThan(0);
+    expect(result.scanStatus).toBe('complete');
+  });
 });
