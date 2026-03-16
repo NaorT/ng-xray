@@ -399,6 +399,8 @@ Watch mode follows the selected project's configured source root when available,
 - Workspace projects whose Angular dependencies live at the workspace root
 - Libraries with `src/` directory
 
+See `docs/compatibility.md` for the CI-validated version and project-shape matrix behind these support claims.
+
 ## Requirements
 
 - **Node.js** 20+

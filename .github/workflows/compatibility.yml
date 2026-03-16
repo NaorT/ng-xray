@@ -1,0 +1,72 @@
+name: Compatibility Matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Matrix profile to run
+        required: true
+        default: core
+        type: choice
+        options:
+          - core
+          - extended
+
+jobs:
+  compatibility-core:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - angular15-legacy-app
+          - angular19-standalone-app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run compatibility case
+        run: bash ./scripts/ci/run-compat-case.sh "${{ matrix.case }}"
+
+  compatibility-extended:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.profile == 'extended')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - angular17-standalone-app
+          - angular21-standalone-app
+          - angular19-workspace-app
+          - angular19-nx-shaped-workspace
+          - angular19-library
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run compatibility case
+        run: bash ./scripts/ci/run-compat-case.sh "${{ matrix.case }}"
