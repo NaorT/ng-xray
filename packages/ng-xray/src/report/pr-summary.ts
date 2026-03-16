@@ -16,6 +16,7 @@ export const generatePrSummary = (result: ScanResult): string => {
 
   if (result.scanStatus === 'partial' && result.failedAnalyzers.length > 0) {
     lines.push(`> ⚠️ Partial scan — ${result.failedAnalyzers.length} analyzer(s) failed: ${result.failedAnalyzers.join(', ')}`);
+    lines.push('> Score may not reflect full project health.');
     lines.push('');
   }
 

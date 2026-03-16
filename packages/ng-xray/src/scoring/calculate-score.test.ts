@@ -205,4 +205,15 @@ describe('generateRemediation', () => {
 
     expect(withDensity[0].estimatedScoreImpact).toBeLessThan(withoutDensity[0].estimatedScoreImpact);
   });
+
+  it('downweights experimental findings in remediation impact', () => {
+    const stableItems = generateRemediation([
+      makeDiag({ rule: 'stable-rule', category: 'performance', severity: 'error', stability: 'stable' }),
+    ]);
+    const experimentalItems = generateRemediation([
+      makeDiag({ rule: 'experimental-rule', category: 'performance', severity: 'error', stability: 'experimental' }),
+    ]);
+
+    expect(experimentalItems[0].estimatedScoreImpact).toBeLessThan(stableItems[0].estimatedScoreImpact);
+  });
 });

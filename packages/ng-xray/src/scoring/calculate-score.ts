@@ -120,9 +120,7 @@ export const generateRemediation = (
 
     const ruleDeductions = new Map<string, number>();
     for (const [rule, diags] of ruleGroups) {
-      const totalWeight = diags.reduce((sum, d) => sum + (d.weight ?? SEVERITY_WEIGHTS[d.severity]), 0);
-      const ruleCap = RULE_MAX_DEDUCTIONS[rule];
-      ruleDeductions.set(rule, ruleCap != null ? Math.min(totalWeight, ruleCap) : totalWeight);
+      ruleDeductions.set(rule, calculateRuleDeduction(diags));
     }
 
     const totalCategoryDeduction = Math.min(

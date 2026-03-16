@@ -123,6 +123,10 @@ export function generateSarif(result: ScanResult): string {
         toolExecutionNotifications: buildNotifications(result.failedAnalyzers),
       },
     ],
+    properties: {
+      scanStatus: result.scanStatus,
+      failedAnalyzers: result.failedAnalyzers,
+    },
   };
 
   const sarif = {
