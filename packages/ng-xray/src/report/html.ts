@@ -541,9 +541,15 @@ const buildScoreHero = (result: ScanResult): string => {
   </div>`;
 };
 
-const buildTrendCard = (history: HistoryData | undefined): string => {
-  if (!history || history.entries.length < 2) return '';
-  const ent = history.entries.slice(-30);
+const buildTrendCard = (
+  history: HistoryData | undefined,
+  profile: ScanResult['profile'],
+): string => {
+  if (!history) return '';
+  const ent = history.entries
+    .filter((entry) => (entry.profile ?? 'core') === (profile ?? 'core'))
+    .slice(-30);
+  if (ent.length < 2) return '';
   const n = ent.length;
   const W = 880, H = 156, pad = { t: 10, r: 12, b: 40, l: 32 };
   const pW = W - pad.l - pad.r, pH = H - pad.t - pad.b;
@@ -649,6 +655,9 @@ const buildScanMeta = (result: ScanResult): string => {
   const dateStr = ts.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   const timeStr = ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   const configLabel = result.configPath ?? 'defaults';
+  const profile = result.profile ?? 'core';
+  const advisoryCount = result.advisoryDiagnosticsCount ?? 0;
+  const excludedCount = result.excludedDiagnosticsCount ?? 0;
   const statusLabel = result.scanStatus === 'complete'
     ? '<span style="color:var(--green)">complete</span>'
     : `<span style="color:var(--amber)">partial</span> — ${result.failedAnalyzers.length} failed`;
@@ -667,6 +676,8 @@ const buildScanMeta = (result: ScanResult): string => {
       <div class="scan-meta-item"><span class="scan-meta-lbl">Config</span><span class="scan-meta-val" title="${escapeHtml(configLabel)}">${escapeHtml(configLabel)}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">Analyzers</span><span class="scan-meta-val">${ran} ran${skipped > 0 ? `, ${skipped} skipped` : ''}${failed > 0 ? `, ${failed} failed` : ''}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">Status</span><span class="scan-meta-val">${statusLabel}</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Score Profile</span><span class="scan-meta-val">${escapeHtml(profile)}</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Advisory</span><span class="scan-meta-val">${advisoryCount} total${excludedCount > 0 ? `, ${excludedCount} excluded` : ''}</span></div>
     </div>
   </div>`;
 };
@@ -793,7 +804,7 @@ const buildRemediation = (result: ScanResult): string => {
         <span class="rem-rank">${rank}</span>
         <div>
           <div class="rem-desc">${escapeHtml(r.description)}</div>
-          <div class="rem-detail">${r.affectedFileCount} file${r.affectedFileCount === 1 ? '' : 's'} · <span class="badge ${priorityBadge(r.priority)}">${escapeHtml(r.priority)}</span> · <span class="rem-impact">+${r.estimatedScoreImpact}</span></div>
+          <div class="rem-detail">${r.affectedFileCount} file${r.affectedFileCount === 1 ? '' : 's'} · <span class="badge ${priorityBadge(r.priority)}">${escapeHtml(r.priority)}</span> · <span class="rem-impact">${r.includedInScore === false ? 'advisory' : `+${r.estimatedScoreImpact}`}</span></div>
         </div>
         <div class="rem-actions">
           ${promptAttr ? `<button onclick='cursorFix(${promptAttr})' class="btn-cursor btn-cursor-icon" title="Fix in Cursor">${CURSOR_ICON}</button>` : ''}
@@ -901,12 +912,24 @@ const buildFindings = (result: ScanResult): string => {
       const allPj = JSON.stringify(generateFixAllPrompt(items));
       const triggerActions = `<div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(${escapeHtml(allPj)})' class="btn-cursor" style="font-size:10px;padding:3px 10px">${CURSOR_ICON} Fix all</button></div>`;
       const helpText = f.help && !rd ? `<p style="color:var(--text-2);font-size:13px;margin-bottom:10px">${escapeHtml(f.help)}</p>` : '';
+      const sourceBadge = `<span class="badge" style="background:var(--bg-3);color:var(--text-3);font-size:9px;padding:1px 5px;vertical-align:middle">${escapeHtml(f.source)}</span>`;
+      const provenanceBadge = f.provenance
+        ? ` <span class="badge" style="background:var(--bg-3);color:var(--text-3);font-size:9px;padding:1px 5px;vertical-align:middle">${escapeHtml(f.provenance)}</span>`
+        : '';
+      const trustBadge = f.includedInScore === false
+        ? ' <span class="badge" style="background:var(--amber-soft);color:var(--amber);font-size:9px;padding:1px 5px;vertical-align:middle">advisory</span>'
+        : f.trust === 'core'
+          ? ' <span class="badge" style="background:var(--green-soft);color:var(--green);font-size:9px;padding:1px 5px;vertical-align:middle">core</span>'
+          : '';
+      const stabilityBadge = f.stability === 'experimental'
+        ? ' <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span>'
+        : '';
 
       allGroups.push({ sev: f.severity, count: items.length, html: `<div class="fgroup" data-cat="${cat}" data-rule="${escapeHtml(rule)}" data-sev="${f.severity}" id="${gid}">
         <div class="fgroup-trigger" onclick="toggleGroup('${gid}')">
           <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
           <span class="sev-dot ${sevC}" data-tip="${f.severity === 'error' ? 'Error' : 'Warning'}"></span>
-          <span class="fgroup-title">${escapeHtml(rd?.title ?? f.message)} <span class="badge" style="background:var(--bg-3);color:var(--text-3);font-size:9px;padding:1px 5px;vertical-align:middle">${escapeHtml(f.source)}</span>${f.stability === 'experimental' ? ' <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span>' : ''}</span>
+          <span class="fgroup-title">${escapeHtml(rd?.title ?? f.message)} ${sourceBadge}${provenanceBadge}${trustBadge}${stabilityBadge}</span>
           <span class="fgroup-count" data-tip="${items.length} affected file${items.length === 1 ? '' : 's'}">${items.length}</span>
           ${triggerActions}
         </div>
@@ -1101,7 +1124,7 @@ ${buildTopBar(result)}
   </div>` : ''}
   ${buildScoreHero(result)}
   ${buildScanMeta(result)}
-  ${hasTrend ? buildTrendCard(history) : ''}
+  ${hasTrend ? buildTrendCard(history, result.profile) : ''}
 
   ${hasBento ? `<div class="bento">
     ${hasSig ? buildSignalCard(result.signalReadiness) : ''}

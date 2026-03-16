@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Diagnostic } from '../types.js';
+import { classifyDiagnostic } from '../trust.js';
 import { logger } from '../utils/logger.js';
 
 interface KnipNameEntry {
@@ -23,6 +24,8 @@ interface KnipJsonOutput {
   issues: KnipFileIssues[];
 }
 
+type KnipMode = 'local' | 'fallback';
+
 const KNIP_CATEGORY_RULE: Record<string, string> = {
   dependencies: 'unused-dependency',
   devDependencies: 'unused-dev-dependency',
@@ -33,23 +36,35 @@ const KNIP_CATEGORY_RULE: Record<string, string> = {
 
 const KNIP_ISSUE_CATEGORIES = ['dependencies', 'devDependencies', 'exports', 'types', 'duplicates'] as const;
 
-const resolveKnipBinary = (directory: string): { command: string; args: string[] } => {
+const resolveKnipBinary = (directory: string): { command: string; args: string[]; mode: KnipMode } => {
   const localBin = path.join(directory, 'node_modules', '.bin', 'knip');
   if (existsSync(localBin)) {
     logger.debug(`Dead code: using local Knip at ${localBin}`);
-    return { command: localBin, args: ['--reporter', 'json', '--no-progress'] };
+    return { command: localBin, args: ['--reporter', 'json', '--no-progress'], mode: 'local' };
   }
 
   logger.debug('Dead code: no local Knip found, falling back to npx');
-  return { command: 'npx', args: ['knip', '--reporter', 'json', '--no-progress'] };
+  return { command: 'npx', args: ['knip', '--reporter', 'json', '--no-progress'], mode: 'fallback' };
 };
 
-const parseKnipOutput = (json: string, directory: string): Diagnostic[] => {
+const classifyKnipDiagnostic = (diagnostic: Diagnostic, mode: KnipMode): Diagnostic =>
+  classifyDiagnostic(
+    diagnostic,
+    mode === 'local'
+      ? { provenance: 'project-knip', trust: 'core' }
+      : { provenance: 'ng-xray-knip-fallback', trust: 'advisory' },
+  );
+
+export const parseKnipOutput = (
+  json: string,
+  directory: string,
+  mode: KnipMode,
+): Diagnostic[] => {
   const knipOutput = JSON.parse(json) as KnipJsonOutput;
   const diagnostics: Diagnostic[] = [];
 
   for (const file of knipOutput.files ?? []) {
-    diagnostics.push({
+    diagnostics.push(classifyKnipDiagnostic({
       filePath: path.relative(directory, file),
       rule: 'unused-file',
       category: 'dead-code',
@@ -60,7 +75,7 @@ const parseKnipOutput = (json: string, directory: string): Diagnostic[] => {
       column: 1,
       source: 'knip',
       stability: 'experimental',
-    });
+    }, mode));
   }
 
   for (const fileEntry of knipOutput.issues ?? []) {
@@ -71,7 +86,7 @@ const parseKnipOutput = (json: string, directory: string): Diagnostic[] => {
       const rule = KNIP_CATEGORY_RULE[cat] ?? 'unused-export';
       const typeLabel = cat.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/ies$/, 'y').replace(/s$/, '');
       for (const entry of entries) {
-        diagnostics.push({
+        diagnostics.push(classifyKnipDiagnostic({
           filePath,
           rule,
           category: 'dead-code',
@@ -82,7 +97,7 @@ const parseKnipOutput = (json: string, directory: string): Diagnostic[] => {
           column: 1,
           source: 'knip',
           stability: 'experimental',
-        });
+        }, mode));
       }
     }
   }
@@ -91,7 +106,7 @@ const parseKnipOutput = (json: string, directory: string): Diagnostic[] => {
 };
 
 export const runDeadCodeAnalyzer = async (directory: string): Promise<Diagnostic[]> => {
-  const { command, args } = resolveKnipBinary(directory);
+  const { command, args, mode } = resolveKnipBinary(directory);
 
   try {
     const result = execFileSync(command, args, {
@@ -101,13 +116,13 @@ export const runDeadCodeAnalyzer = async (directory: string): Promise<Diagnostic
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    return parseKnipOutput(result, directory);
+    return parseKnipOutput(result, directory, mode);
   } catch (error) {
     // Knip exits non-zero when it finds issues but still writes valid JSON to stdout
     if (error instanceof Error && 'stdout' in error) {
       const stdout = (error as { stdout: string }).stdout;
       if (stdout) {
-        return parseKnipOutput(stdout, directory);
+        return parseKnipOutput(stdout, directory, mode);
       }
     }
     throw error;

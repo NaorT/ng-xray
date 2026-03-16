@@ -129,7 +129,13 @@ export const printDiagnostics = (diagnostics: Diagnostic[], verbose: boolean): v
         const first = ruleDiags[0];
         const expTag = first.stability === 'experimental' ? C.zinc6(' [experimental]') : '';
         const srcTag = C.zinc6(` [${first.source}]`);
-        logger.log(C.zinc4(`       ${rule}  ${C.zinc6(`(${ruleDiags.length})`)}${srcTag}${expTag}`));
+        const provenanceTag = first.provenance ? C.zinc6(` [${first.provenance}]`) : '';
+        const trustTag = first.includedInScore === false
+          ? C.zinc6(' [advisory]')
+          : first.trust === 'core'
+            ? C.zinc6(' [core]')
+            : '';
+        logger.log(C.zinc4(`       ${rule}  ${C.zinc6(`(${ruleDiags.length})`)}${srcTag}${provenanceTag}${trustTag}${expTag}`));
         for (const d of ruleDiags.slice(0, 5)) {
           logger.log(C.zinc6(`         ${d.filePath}:${d.line}`));
         }
@@ -145,6 +151,9 @@ export const printDiagnostics = (diagnostics: Diagnostic[], verbose: boolean): v
 
 export const printSummary = (result: ScanResult): void => {
   const { score } = result;
+  const profile = result.profile ?? 'core';
+  const advisoryCount = result.advisoryDiagnosticsCount ?? 0;
+  const excludedCount = result.excludedDiagnosticsCount ?? 0;
 
   sep();
   logger.break();
@@ -153,6 +162,10 @@ export const printSummary = (result: ScanResult): void => {
   const label = colorByScore(score.label.toUpperCase(), score.overall);
   const partial = result.scanStatus === 'partial' ? C.amber(' (partial)') : '';
   logger.log(`  ${scoreStr}${C.zinc4('/100')}  ${label}${partial}`);
+  const profileMeta = advisoryCount > 0
+    ? `${advisoryCount} advisory${excludedCount > 0 ? `, ${excludedCount} excluded` : ''}`
+    : 'no advisory findings';
+  logger.log(`  ${C.zinc4('Score profile')}  ${C.white(profile)}${C.zinc4(`  (${profileMeta})`)}`);
   logger.break();
 
   for (const cat of score.categories) {
@@ -199,8 +212,11 @@ export const printRemediation = (result: ScanResult): void => {
       ? rd.estimatedMinutes * item.affectedFileCount
       : item.affectedFileCount * 5;
 
+    const impact = item.includedInScore === false
+      ? ' advisory'
+      : `+${String(item.estimatedScoreImpact).padStart(2)} pts`;
     const meta = C.zinc4(
-      `+${String(item.estimatedScoreImpact).padStart(2)} pts  ${String(item.affectedFileCount).padStart(3)} files  ${fmtMinutes(mins).padStart(7)}`,
+      `${impact}  ${String(item.affectedFileCount).padStart(3)} files  ${fmtMinutes(mins).padStart(7)}`,
     );
 
     logger.log(`  ${num}  ${dot}  ${C.white(pad(desc, 38))} ${meta}`);

@@ -13,6 +13,9 @@ const makeDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   column: 1,
   source: 'ng-xray',
   stability: 'stable',
+  provenance: 'ng-xray-heuristic',
+  trust: 'advisory',
+  includedInScore: false,
   ...overrides,
 });
 
@@ -51,6 +54,10 @@ const makeScanResult = (overrides: Partial<ScanResult> = {}): ScanResult => ({
   timestamp: '2026-01-01T00:00:00.000Z',
   configPath: null,
   analyzerRuns: [],
+  profile: 'core',
+  scoredDiagnosticsCount: 0,
+  advisoryDiagnosticsCount: 1,
+  excludedDiagnosticsCount: 1,
   ...overrides,
 });
 
@@ -64,5 +71,17 @@ describe('generatePrSummary', () => {
 
     expect(summary).toContain('Partial scan');
     expect(summary).toContain('Score may not reflect full project health.');
+  });
+
+  it('describes the active score profile and advisory findings', () => {
+    const summary = generatePrSummary(makeScanResult({
+      diagnostics: [makeDiagnostic()],
+      advisoryDiagnosticsCount: 1,
+      scoredDiagnosticsCount: 0,
+    }));
+
+    expect(summary).toContain('Score profile: `core`');
+    expect(summary).toContain('Advisory findings: 1');
+    expect(summary).toContain('Advisory findings excluded from score: 1');
   });
 });

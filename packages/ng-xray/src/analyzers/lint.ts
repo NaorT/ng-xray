@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Diagnostic, DiagnosticSource } from '../types.js';
+import { classifyDiagnostic } from '../trust.js';
 import { logger } from '../utils/logger.js';
 import { walkFiles } from '../utils/walk.js';
 
@@ -89,6 +90,8 @@ const classifySource = (ruleId: string): DiagnosticSource => {
   return 'eslint';
 };
 
+type LintMode = 'ingest' | 'built-in';
+
 const createBuiltInEslint = async (directory: string) => {
   const { ESLint } = await import('eslint');
   const tsEslint = (await import('typescript-eslint')).default;
@@ -147,26 +150,35 @@ const createIngestEslint = async (directory: string) => {
 const mapResultsToDiagnostics = (
   results: Awaited<ReturnType<InstanceType<typeof import('eslint').ESLint>['lintFiles']>>,
   directory: string,
+  mode: LintMode,
 ): Diagnostic[] =>
   results.flatMap((result) =>
     result.messages
       .filter((msg) => msg.ruleId != null)
-      .map((msg): Diagnostic => ({
-        filePath: path.relative(directory, result.filePath),
-        rule: msg.ruleId!,
-        category: RULE_CATEGORY_MAP[msg.ruleId!] ?? 'best-practices',
-        severity: msg.severity === 2 ? 'error' : 'warning',
-        message: msg.message,
-        help: RULE_HELP_MAP[msg.ruleId!] ?? '',
-        line: msg.line,
-        column: msg.column,
-        source: classifySource(msg.ruleId!),
-        stability: 'stable',
-      })),
+      .map((msg): Diagnostic =>
+        classifyDiagnostic(
+          {
+            filePath: path.relative(directory, result.filePath),
+            rule: msg.ruleId!,
+            category: RULE_CATEGORY_MAP[msg.ruleId!] ?? 'best-practices',
+            severity: msg.severity === 2 ? 'error' : 'warning',
+            message: msg.message,
+            help: RULE_HELP_MAP[msg.ruleId!] ?? '',
+            line: msg.line,
+            column: msg.column,
+            source: classifySource(msg.ruleId!),
+            stability: 'stable',
+          },
+          mode === 'ingest'
+            ? { provenance: 'project-eslint', trust: 'core' }
+            : { provenance: 'ng-xray-built-in-lint', trust: 'advisory' },
+        ),
+      ),
   );
 
 export const runLintAnalyzer = async (directory: string): Promise<Diagnostic[]> => {
   const configPath = detectEslintConfig(directory);
+  const mode: LintMode = configPath ? 'ingest' : 'built-in';
 
   let eslint: InstanceType<typeof import('eslint').ESLint>;
 
@@ -189,5 +201,5 @@ export const runLintAnalyzer = async (directory: string): Promise<Diagnostic[]> 
   }
 
   const results = await eslint.lintFiles(files);
-  return mapResultsToDiagnostics(results, directory);
+  return mapResultsToDiagnostics(results, directory, mode);
 };

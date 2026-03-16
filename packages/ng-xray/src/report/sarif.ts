@@ -56,6 +56,9 @@ function buildResults(diagnostics: Diagnostic[], ruleIdToIndex: Map<string, numb
         source: d.source,
         stability: d.stability,
         category: d.category,
+        provenance: d.provenance,
+        trust: d.trust,
+        includedInScore: d.includedInScore,
       },
     };
   });
@@ -126,6 +129,10 @@ export function generateSarif(result: ScanResult): string {
     properties: {
       scanStatus: result.scanStatus,
       failedAnalyzers: result.failedAnalyzers,
+      profile: result.profile ?? 'core',
+      scoredDiagnosticsCount: result.scoredDiagnosticsCount ?? result.diagnostics.length,
+      advisoryDiagnosticsCount: result.advisoryDiagnosticsCount ?? 0,
+      excludedDiagnosticsCount: result.excludedDiagnosticsCount ?? 0,
     },
   };
 

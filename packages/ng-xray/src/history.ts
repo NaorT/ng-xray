@@ -1,3 +1,4 @@
+import type { ScanProfile } from './types.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import type { ScanResult } from './types.js';
@@ -15,6 +16,10 @@ export interface HistoryEntry {
   totalWarnings: number;
   filesAffected: number;
   elapsedMs: number;
+  profile?: ScanProfile;
+  scoredDiagnosticsCount?: number;
+  advisoryDiagnosticsCount?: number;
+  excludedDiagnosticsCount?: number;
 }
 
 export interface HistoryData {
@@ -55,6 +60,10 @@ export const appendHistory = (directory: string, result: ScanResult): void => {
     totalWarnings: result.diagnostics.filter((d) => d.severity === 'warning').length,
     filesAffected: uniqueFiles.size,
     elapsedMs: result.elapsedMs,
+    profile: result.profile ?? 'core',
+    scoredDiagnosticsCount: result.scoredDiagnosticsCount,
+    advisoryDiagnosticsCount: result.advisoryDiagnosticsCount,
+    excludedDiagnosticsCount: result.excludedDiagnosticsCount,
   };
 
   history.entries.push(entry);
@@ -74,10 +83,14 @@ export const clearHistory = (directory: string): boolean => {
   return true;
 };
 
-export const getHistoryDelta = (history: HistoryData): { scoreDelta: number; issuesDelta: number } | null => {
-  if (history.entries.length < 2) return null;
-  const current = history.entries[history.entries.length - 1];
-  const previous = history.entries[history.entries.length - 2];
+export const getHistoryDelta = (
+  history: HistoryData,
+  profile: ScanProfile = 'core',
+): { scoreDelta: number; issuesDelta: number } | null => {
+  const entries = history.entries.filter((entry) => (entry.profile ?? 'core') === profile);
+  if (entries.length < 2) return null;
+  const current = entries[entries.length - 1];
+  const previous = entries[entries.length - 2];
   return {
     scoreDelta: current.score - previous.score,
     issuesDelta: current.totalIssues - previous.totalIssues,

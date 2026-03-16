@@ -13,6 +13,9 @@ const makeDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   column: 1,
   source: 'ng-xray',
   stability: 'stable',
+  provenance: 'ng-xray-heuristic',
+  trust: 'advisory',
+  includedInScore: false,
   ...overrides,
 });
 
@@ -51,6 +54,10 @@ const makeScanResult = (overrides: Partial<ScanResult> = {}): ScanResult => ({
   timestamp: '2026-01-01T00:00:00.000Z',
   configPath: null,
   analyzerRuns: [],
+  profile: 'core',
+  scoredDiagnosticsCount: 0,
+  advisoryDiagnosticsCount: 1,
+  excludedDiagnosticsCount: 1,
   ...overrides,
 });
 
@@ -64,5 +71,15 @@ describe('generateSarif', () => {
     expect(sarif.runs[0].invocations[0].executionSuccessful).toBe(false);
     expect(sarif.runs[0].properties.scanStatus).toBe('partial');
     expect(sarif.runs[0].properties.failedAnalyzers).toEqual(['Lint checks']);
+  });
+
+  it('includes trust and provenance metadata on SARIF results', () => {
+    const sarif = JSON.parse(generateSarif(makeScanResult()));
+
+    expect(sarif.runs[0].results[0].properties.provenance).toBe('ng-xray-heuristic');
+    expect(sarif.runs[0].results[0].properties.trust).toBe('advisory');
+    expect(sarif.runs[0].results[0].properties.includedInScore).toBe(false);
+    expect(sarif.runs[0].properties.profile).toBe('core');
+    expect(sarif.runs[0].properties.excludedDiagnosticsCount).toBe(1);
   });
 });

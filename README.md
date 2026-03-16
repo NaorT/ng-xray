@@ -1,6 +1,6 @@
 # ng-xray
 
-Diagnose and fix health issues in your Angular app. One command, 0-100 score, actionable remediation.
+ Diagnose Angular repo health with one CLI/CI workflow, a conservative default score, and actionable remediation.
 
 [![Angular 15+](https://img.shields.io/badge/Angular-15%2B-DD0031?logo=angular&logoColor=white)](https://angular.dev)
 [![Node 20+](https://img.shields.io/badge/Node-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
@@ -34,11 +34,28 @@ ng-xray supports two lint modes:
 
 If your project has an ESLint config that is broken, the lint analyzer will fail and the scan becomes `partial`. ng-xray does not silently fall back to built-in rules when a project config exists but is broken.
 
+## Trust Model And Score Profiles
+
+Each finding includes:
+
+- `source`: where the raw signal came from (`angular`, `angular-eslint`, `eslint`, `knip`, `ng-xray`)
+- `provenance`: whether the finding came from an official engine, a project-owned upstream tool, or an ng-xray fallback/heuristic path
+- `stability`: `stable` or `experimental`
+- `trust`: `core` or `advisory`
+- `includedInScore`: whether that finding affected the current score profile
+
+Score profiles:
+
+- `core` (default): conservative score intended for CI thresholds. Counts official Angular diagnostics, project-owned upstream adapters such as repo-configured ESLint and local Knip, and selected high-confidence native rules such as architecture enforcement and strict best-practice checks.
+- `all`: broader score for coaching and cleanup. Counts advisory ng-xray heuristics and fallback analyzers too.
+
+Use `--profile all` when you want the score to reflect advisory guidance as well.
+
 ## Analyzer Categories
 
 ### Stable analyzers
 
-Each finding includes a `source` field (e.g., `angular`, `angular-eslint`, `eslint`, `ng-xray`, `knip`) and a `stability` field (`stable` or `experimental`). Stable findings have low false-positive rates and are suitable for CI gating.
+Stable findings are the best candidates for strict CI gates, but not every stable rule is automatically part of the default `core` score. Advisory findings still appear in reports and JSON, but they do not affect the default `core` score unless you opt into `--profile all`.
 
 **Angular Extended Diagnostics** — official Angular compiler checks (source: `angular`)
 
@@ -118,7 +135,7 @@ Heuristic-based. May produce false positives. Experimental findings are downweig
 
 **Dead Code (generic)** — unused files, exports, dependencies (via Knip)
 
-Prefers the project's local Knip installation when available. Falls back to `npx knip`.
+Prefers the project's local Knip installation when available. Local Knip findings are treated as trusted upstream input. If no local Knip is present, ng-xray falls back to `npx knip` and labels those findings as advisory fallback output.
 
 | Rule | What it catches |
 |------|----------------|
@@ -186,6 +203,7 @@ Options:
   --no-architecture    Skip architecture checks
   --performance        Run performance checks
   --no-performance     Skip performance checks
+  --profile <profile>  Score profile: core (default) or all
   --verbose            Show file details per rule
   --score              Output only the score (0-100)
   --json               Output full results as JSON
@@ -236,6 +254,8 @@ Precedence: explicit CLI flags > config file > defaults.
 
 - Score is 0-100, sum of 5 categories
 - Categories: Best Practices (25), Performance (20), Architecture (20), Dead Code (20), Security (15)
+- Default score profile is `core`
+- `core` counts high-trust findings intended for gating; `all` also counts advisory findings
 - Per-rule and per-category caps prevent any single rule from dominating
 - Density scaling adjusts deductions based on project size
 - Experimental findings are downweighted by 50%
@@ -264,8 +284,11 @@ Precedence: fatal (1) > partial (2) > threshold failure (3).
 ## CI Usage
 
 ```bash
-# Gate on score threshold
+# Gate on the conservative core profile
 npx ng-xray . --fail-under 70
+
+# Include advisory findings in the score for broader cleanup work
+npx ng-xray . --profile all --fail-under 70
 
 # SARIF for GitHub Code Scanning
 npx ng-xray . --sarif > ng-xray.sarif
@@ -276,11 +299,13 @@ npx ng-xray . --pr-summary > summary.md
 # JSON for custom processing
 npx ng-xray . --json > results.json
 
-# Conservative (stable analyzers only)
-npx ng-xray . --no-dead-code --json
+# Advisory-inclusive JSON output
+npx ng-xray . --profile all --json > results-all.json
 ```
 
 Machine-readable modes (`--score`, `--json`, `--sarif`, `--pr-summary`) are side-effect free: they do not append scan history and they do not generate the HTML report.
+
+JSON output also includes scan/profile metadata such as `profile`, `scoredDiagnosticsCount`, and `advisoryDiagnosticsCount`, plus per-finding trust metadata.
 
 When `scanStatus` is `"partial"` in JSON output, one or more analyzers failed. The score may not reflect full project health. Do not rely on score thresholds for CI gates when the scan is partial.
 

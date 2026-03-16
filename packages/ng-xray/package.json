@@ -1,7 +1,7 @@
 {
   "name": "ng-xray",
   "version": "0.1.0",
-  "description": "Diagnose and fix health issues in your Angular app",
+  "description": "Angular repo-health CLI for trusted diagnostics, scoring, and remediation",
   "keywords": [
     "angular",
     "diagnostics",

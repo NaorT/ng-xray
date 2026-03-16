@@ -4,25 +4,32 @@
 
 ng-xray analyzers should fall into one of these buckets:
 
-### 1. Official or upstream-backed
-These are the highest-trust analyzers.
+### 1. Official or project-owned upstream-backed
+These are the highest-trust analyzers and the best candidates for the default core score.
 
 Examples:
 - Angular Extended Diagnostics
-- angular-eslint
-- Knip
+- repo-configured angular-eslint / ESLint
+- local Knip
 - Nx or dependency graph integrations later
 
-### 2. ng-xray-native stable
-These are custom analyzers that have proven precision and are safe for CI gating.
+### 2. Advisory fallback adapters
+These use upstream tools, but not through a clearly project-owned path. They should stay visible while remaining advisory by default.
+
+Examples:
+- built-in lint fallback when no ESLint config exists
+- fallback Knip execution via `npx`
+
+### 3. ng-xray-native stable
+These are custom analyzers that have proven precision and can graduate into the default core score.
 
 Examples:
 - architecture rules engine
 - compatibility analyzer
 - workspace shape analyzer
-- selected high-confidence performance hygiene checks
+- `prefer-inject` / `no-async-lifecycle`
 
-### 3. ng-xray-native experimental
+### 4. ng-xray-native experimental
 These are useful but still noisy, opinionated, or heuristic-heavy.
 
 Examples:
@@ -78,7 +85,9 @@ An experimental rule may be:
 
 Every finding should show:
 - source
+- provenance
 - stability
+- trust
 - severity
 - rule id
 - analyzer id
@@ -89,11 +98,15 @@ Every finding should show:
 
 ### Good candidates for strict gates
 - official Angular diagnostics
-- angular-eslint stable errors
+- repo-configured angular-eslint stable errors
+- local Knip findings with demonstrated precision
 - stable architecture violations
-- new stable dead-code findings with high confidence
+- proven stable native rules that are explicitly included in the core score
 
 ### Bad candidates for strict gates
+- built-in lint fallback findings
+- fallback Knip findings
+- stable-but-advisory guidance such as `missing-onpush`
 - experimental migration guidance
 - low-confidence security heuristics
 - speculative dead Angular entity rules

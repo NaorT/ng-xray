@@ -65,12 +65,15 @@ Use Knip as the default dead-code engine while keeping ng-xray-specific enrichme
 
 ## Implementation notes
 - Add explicit source metadata for Knip-backed findings
+- Distinguish project-owned Knip from fallback execution in provenance/trust metadata
 - Preserve Angular-aware exclusions and enrichments outside of Knip itself
 - Keep custom Angular dead-code heuristics behind experimental flags if needed
 
 ## Acceptance criteria
 - Default dead-code path is Knip-backed
 - Findings are labeled `source: knip`
+- Project-owned Knip findings can participate in strict core scoring
+- Fallback Knip findings are visible but advisory
 - False positives are lower than current custom-only behavior
 - Docs explain the relationship between Knip and ng-xray
 
@@ -135,6 +138,7 @@ Generate a compact markdown summary for PR usage.
 ## Implementation notes
 Include:
 - current score
+- score profile
 - score delta if compare/baseline exists
 - new findings count
 - top regressions

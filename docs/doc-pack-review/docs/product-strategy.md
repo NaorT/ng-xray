@@ -33,7 +33,8 @@ Implication:
 Knip is stronger than a generic custom dead-code analyzer.
 
 Implication:
-- ng-xray should make Knip-backed dead code the default
+- ng-xray should trust project-owned Knip first
+- fallback Knip execution must be labeled advisory, not quietly treated as repo truth
 - Angular-aware enrichments should sit on top
 
 ### Nx
@@ -58,7 +59,7 @@ ng-xray can be better at:
 
 ## Positioning statement
 
-ng-xray is the Angular repo-health platform that unifies Angular diagnostics, linting, dead-code detection, architecture checks, and remediation into one trustworthy workflow.
+ng-xray is the Angular repo-health CLI/CI workflow that unifies Angular diagnostics, linting, dead-code detection, architecture checks, and remediation into one trustworthy experience.
 
 ## What not to claim
 
@@ -78,6 +79,8 @@ Do not market ng-xray as:
 4. Win on CI, PRs, and editor ergonomics
 5. Add Angular-specific value only where ng-xray can be truly precise
 6. Keep scoring transparent and challengeable
+7. Default to a conservative core score and let teams opt into broader advisory scoring
+8. Allow proven native rules into the core score only after they are defensible in CI conversations
 
 ## Success conditions
 
@@ -86,5 +89,5 @@ ng-xray is on the right path when teams can:
 - run one command locally and understand repo health fast
 - adopt it in CI using baselines and regression-only gates
 - use it in PR reviews through summaries and SARIF-based workflows
-- trust the difference between official, tool-backed, stable, and experimental findings
+- trust the difference between official, project-owned upstream, advisory fallback, and heuristic findings
 - upgrade Angular without waiting months for ng-xray support

@@ -1,6 +1,16 @@
 export type Severity = 'error' | 'warning';
 export type DiagnosticSource = 'angular' | 'angular-eslint' | 'eslint' | 'knip' | 'ng-xray';
 export type DiagnosticStability = 'stable' | 'experimental';
+export type DiagnosticTrust = 'core' | 'advisory';
+export type DiagnosticProvenance =
+  | 'angular-compiler'
+  | 'project-eslint'
+  | 'project-knip'
+  | 'ng-xray-knip-fallback'
+  | 'ng-xray-native-stable'
+  | 'ng-xray-built-in-lint'
+  | 'ng-xray-heuristic';
+export type ScanProfile = 'core' | 'all';
 
 export type Category =
   | 'best-practices'
@@ -21,6 +31,9 @@ export interface Diagnostic {
   source: DiagnosticSource;
   stability: DiagnosticStability;
   weight?: number;
+  trust?: DiagnosticTrust;
+  provenance?: DiagnosticProvenance;
+  includedInScore?: boolean;
 }
 
 export interface ProjectInfo {
@@ -57,6 +70,7 @@ export interface RemediationItem {
   description: string;
   estimatedScoreImpact: number;
   affectedFileCount: number;
+  includedInScore?: boolean;
 }
 
 export interface SignalReadinessReport {
@@ -119,6 +133,10 @@ export interface ScanResult {
   timestamp: string;
   configPath: string | null;
   analyzerRuns: AnalyzerRunInfo[];
+  profile?: ScanProfile;
+  scoredDiagnosticsCount?: number;
+  advisoryDiagnosticsCount?: number;
+  excludedDiagnosticsCount?: number;
 }
 
 export interface ScanOptions {
@@ -126,6 +144,7 @@ export interface ScanOptions {
   deadCode?: boolean;
   architecture?: boolean;
   performance?: boolean;
+  profile?: ScanProfile;
   verbose?: boolean;
   scoreOnly?: boolean;
   json?: boolean;

@@ -119,42 +119,58 @@ export const generateRemediation = (
     const ruleGroups = groupByRule(categoryDiags);
 
     const ruleDeductions = new Map<string, number>();
+    const scoredRuleDeductions = new Map<string, number>();
     for (const [rule, diags] of ruleGroups) {
       ruleDeductions.set(rule, calculateRuleDeduction(diags));
+      scoredRuleDeductions.set(
+        rule,
+        calculateRuleDeduction(diags.filter((diag) => diag.includedInScore !== false)),
+      );
     }
 
     const totalCategoryDeduction = Math.min(
-      [...ruleDeductions.values()].reduce((sum, d) => sum + d, 0),
+      [...scoredRuleDeductions.values()].reduce((sum, d) => sum + d, 0),
       maxDeduction,
     );
 
     for (const [rule, diags] of ruleGroups) {
+      const scoredDiags = diags.filter((diag) => diag.includedInScore !== false);
       const ruleDeduction = ruleDeductions.get(rule) ?? 0;
-      const otherDeduction = [...ruleDeductions.entries()]
+      const scoredRuleDeduction = scoredRuleDeductions.get(rule) ?? 0;
+      const otherDeduction = [...scoredRuleDeductions.entries()]
         .filter(([r]) => r !== rule)
         .reduce((sum, [, d]) => sum + d, 0);
       const marginalImpact = Math.min(ruleDeduction, Math.max(0, totalCategoryDeduction - Math.min(otherDeduction, maxDeduction)));
 
       if (marginalImpact === 0 && ruleDeduction === 0) continue;
 
-      let estimatedImpact = Math.max(marginalImpact, 1);
-      if (fileCount != null && fileCount > 0) {
+      let estimatedImpact = scoredDiags.length > 0
+        ? Math.max(Math.min(scoredRuleDeduction, marginalImpact), 1)
+        : 0;
+      if (estimatedImpact > 0 && fileCount != null && fileCount > 0) {
         estimatedImpact = Math.max(
-          estimatedImpact * densityMultiplier(diags.length, fileCount),
+          estimatedImpact * densityMultiplier(scoredDiags.length, fileCount),
           1,
         );
       }
       const uniqueFiles = new Set(diags.map((d) => d.filePath));
+      const advisoryImpact = ruleDeduction;
+      const priorityImpact = scoredDiags.length > 0 ? estimatedImpact : advisoryImpact;
 
       items.push({
-        priority: estimatedImpact >= 6 ? 'high' : estimatedImpact >= 3 ? 'medium' : 'low',
+        priority: priorityImpact >= 6 ? 'high' : priorityImpact >= 3 ? 'medium' : 'low',
         rule,
         description: diags[0].message,
         estimatedScoreImpact: estimatedImpact,
         affectedFileCount: uniqueFiles.size,
+        includedInScore: scoredDiags.length > 0,
       });
     }
   }
 
-  return items.sort((a, b) => b.estimatedScoreImpact - a.estimatedScoreImpact);
+  return items.sort((a, b) =>
+    Number(b.includedInScore) - Number(a.includedInScore)
+    || b.estimatedScoreImpact - a.estimatedScoreImpact
+    || b.affectedFileCount - a.affectedFileCount,
+  );
 };

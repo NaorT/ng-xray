@@ -55,4 +55,28 @@ describe('scan', () => {
     expect(result.project.sourceFileCount).toBeGreaterThan(0);
     expect(result.scanStatus).toBe('complete');
   });
+
+  it('uses the conservative core profile by default while keeping advisory diagnostics visible', async () => {
+    const result = await scan(fixtureDir('missing-onpush'), {}, true);
+    const missingOnPush = result.diagnostics.find((diagnostic) => diagnostic.rule === 'missing-onpush');
+
+    expect(result.profile).toBe('core');
+    expect(missingOnPush).toBeDefined();
+    expect(missingOnPush?.trust).toBe('advisory');
+    expect(missingOnPush?.includedInScore).toBe(false);
+    expect(result.score.overall).toBe(100);
+    expect(result.scoredDiagnosticsCount).toBe(0);
+    expect(result.advisoryDiagnosticsCount).toBeGreaterThan(0);
+    expect(result.excludedDiagnosticsCount).toBeGreaterThan(0);
+  });
+
+  it('allows opting into the all profile for advisory scoring', async () => {
+    const result = await scan(fixtureDir('missing-onpush'), { profile: 'all' }, true);
+
+    expect(result.profile).toBe('all');
+    expect(result.score.overall).toBeLessThan(100);
+    expect(result.scoredDiagnosticsCount).toBeGreaterThan(0);
+    expect(result.advisoryDiagnosticsCount).toBeGreaterThan(0);
+    expect(result.excludedDiagnosticsCount).toBe(0);
+  });
 });

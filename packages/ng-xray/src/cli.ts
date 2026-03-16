@@ -24,6 +24,7 @@ import { scan } from './scan.js';
 import { saveBaseline, clearBaseline } from './baseline.js';
 import { appendHistory, clearHistory, loadHistory, getHistoryDelta } from './history.js';
 import type { ScanOptions } from './types.js';
+import { normalizeScanProfile } from './trust.js';
 import { logger } from './utils/logger.js';
 
 interface CliFlags {
@@ -31,6 +32,7 @@ interface CliFlags {
   deadCode?: boolean;
   architecture?: boolean;
   performance?: boolean;
+  profile?: string;
   verbose: boolean;
   score: boolean;
   json: boolean;
@@ -66,6 +68,7 @@ program
   .option('--no-architecture', 'skip architecture checks')
   .option('--performance', 'run performance checks')
   .option('--no-performance', 'skip performance checks')
+  .option('--profile <profile>', 'score profile: core (default) or all')
   .option('--verbose', 'show file details per rule', false)
   .option('--score', 'output only the score', false)
   .option('--json', 'output full results as JSON', false)
@@ -101,6 +104,7 @@ program
         deadCode: normalize(flags.deadCode),
         architecture: normalize(flags.architecture),
         performance: normalize(flags.performance),
+        profile: normalizeScanProfile(flags.profile),
         verbose: flags.verbose,
         ignoreBaseline: flags.ignoreBaseline,
       };
@@ -153,7 +157,7 @@ program
       const result = await scan(scanDir, scanOptions);
 
       const historyBefore = loadHistory(resolvedDir);
-      const deltaBefore = getHistoryDelta(historyBefore);
+      const deltaBefore = getHistoryDelta(historyBefore, result.profile ?? 'core');
 
       const reportPath = applyOutputSideEffects(outputMode, {
         appendHistory: () => appendHistory(resolvedDir, result),
@@ -162,7 +166,7 @@ program
       });
 
       const history = loadHistory(resolvedDir);
-      const delta = getHistoryDelta(history) ?? deltaBefore;
+      const delta = getHistoryDelta(history, result.profile ?? 'core') ?? deltaBefore;
 
       if (result.diagnostics.length > 0) {
         printDiagnostics(result.diagnostics, flags.verbose);
@@ -259,7 +263,8 @@ program
     const recent = history.entries.slice(-5);
     for (const entry of recent) {
       const date = new Date(entry.timestamp).toLocaleDateString();
-      logger.log(`  ${date}  Score: ${entry.score}  Issues: ${entry.totalIssues}  (${Math.round(entry.elapsedMs / 1000 * 10) / 10}s)`);
+      const profileLabel = entry.profile ?? 'core';
+      logger.log(`  ${date}  Score: ${entry.score}  Issues: ${entry.totalIssues}  Profile: ${profileLabel}  (${Math.round(entry.elapsedMs / 1000 * 10) / 10}s)`);
     }
   });
 

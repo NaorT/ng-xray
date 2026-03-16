@@ -8,10 +8,16 @@ const priorityEmoji = (p: RemediationItem['priority']): string =>
 
 export const generatePrSummary = (result: ScanResult): string => {
   const lines: string[] = [];
+  const advisoryCount = result.advisoryDiagnosticsCount ?? 0;
+  const excludedCount = result.excludedDiagnosticsCount ?? 0;
+  const profile = result.profile ?? 'core';
 
   lines.push('## ng-xray Health Report');
   lines.push('');
   lines.push(`**Score: ${result.score.overall}/100** — ${result.score.label}`);
+  lines.push(`Score profile: \`${profile}\``);
+  lines.push(`Advisory findings: ${advisoryCount}`);
+  lines.push(`Advisory findings excluded from score: ${excludedCount}`);
   lines.push('');
 
   if (result.scanStatus === 'partial' && result.failedAnalyzers.length > 0) {
@@ -32,7 +38,10 @@ export const generatePrSummary = (result: ScanResult): string => {
     lines.push('### Top Fixes');
     lines.push('');
     for (const r of topFixes) {
-      lines.push(`- ${priorityEmoji(r.priority)} ${escapeMarkdown(r.description)} — +${r.estimatedScoreImpact} pts, ${r.affectedFileCount} file${r.affectedFileCount === 1 ? '' : 's'}`);
+      const impact = r.includedInScore === false
+        ? 'advisory'
+        : `+${r.estimatedScoreImpact} pts`;
+      lines.push(`- ${priorityEmoji(r.priority)} ${escapeMarkdown(r.description)} — ${impact}, ${r.affectedFileCount} file${r.affectedFileCount === 1 ? '' : 's'}`);
     }
     lines.push('');
   }

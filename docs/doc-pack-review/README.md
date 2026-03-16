@@ -1,6 +1,6 @@
 # ng-xray
 
-ng-xray is an Angular repo-health platform. It unifies Angular diagnostics, linting, dead-code detection, architecture checks, scoring, and remediation into one trustworthy workflow.
+ng-xray is an Angular repo-health CLI/CI workflow. It unifies Angular diagnostics, linting, dead-code detection, architecture checks, scoring, and remediation into one trustworthy developer experience.
 
 ## Why this exists
 
@@ -18,13 +18,13 @@ The market gap is not another isolated analyzer. The gap is a single Angular-fir
 - prioritizes fixes
 - works in CI and PRs
 - supports gradual rollout with baselines
-- clearly separates official signals, upstream tool signals, stable ng-xray rules, and experimental heuristics
+- clearly separates official signals, project-owned upstream tool signals, fallback/advisory signals, and native heuristics
 
 ## Product position
 
 ng-xray should not try to beat Angular, angular-eslint, Knip, or Nx at their specialties.
 
-ng-xray should become the best orchestration and repo-health layer on top of them.
+ng-xray should become the best orchestration and repo-health workflow on top of them.
 
 ## Current strategic priorities
 

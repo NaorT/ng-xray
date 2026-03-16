@@ -12,6 +12,7 @@ Make ng-xray production-credible for Angular teams and individuals.
 - good CI adoption path
 - useful first run on real Angular repos
 - explicit stable vs experimental boundaries
+- conservative default score suitable for gating
 - upstream integrations where trust already exists
 
 ## Must-have for v1
@@ -30,11 +31,14 @@ Why:
 Why:
 - better precision
 - less custom dead-code noise
+- only project-owned Knip should count in the default core score
 
 ### 4. Source transparency
 Per finding and analyzer summary:
 - source
+- provenance
 - stability
+- trust
 - status
 
 ### 5. SARIF output
@@ -87,5 +91,5 @@ Read scan artifacts, show score, top fixes, and partial-scan warnings.
 - works on legacy NgModule-heavy repo
 - can run in CI with baseline mode
 - can emit JSON, HTML, and SARIF reliably
-- clearly labels official/tool-backed/stable/experimental findings
+- clearly labels official/project-owned/advisory/stable/experimental findings
 - supports current documented Angular versions

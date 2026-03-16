@@ -216,4 +216,19 @@ describe('generateRemediation', () => {
 
     expect(experimentalItems[0].estimatedScoreImpact).toBeLessThan(stableItems[0].estimatedScoreImpact);
   });
+
+  it('keeps advisory remediation items visible even when they do not affect the current score', () => {
+    const items = generateRemediation([
+      makeDiag({
+        rule: 'missing-onpush',
+        category: 'performance',
+        trust: 'advisory',
+        includedInScore: false,
+      }),
+    ]);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].includedInScore).toBe(false);
+    expect(items[0].estimatedScoreImpact).toBe(0);
+  });
 });

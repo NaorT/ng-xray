@@ -30,6 +30,11 @@ import { buildProjectClassMap, type ProjectClassMap } from './utils/inheritance-
 import { buildProjectTemplateMap, type ProjectTemplateMap } from './utils/template-parser.js';
 import { createSpinner } from './utils/spinner.js';
 import { loadBaseline, subtractBaseline } from './baseline.js';
+import {
+  classifyDiagnostic,
+  normalizeScanProfile,
+  shouldIncludeInScore,
+} from './trust.js';
 
 interface AnalyzerDef {
   id: string;
@@ -115,6 +120,7 @@ export const scan = async (
 ): Promise<ScanResult> => {
   const timestamp = new Date().toISOString();
   const startTime = performance.now();
+  const profile = normalizeScanProfile(options.profile);
   const project = discoverProject(directory);
   const { config, configPath } = loadConfigWithPath(directory);
   const architectureConfig = getArchitectureAnalyzerConfig(config);
@@ -327,13 +333,25 @@ export const scan = async (
     a.rule.localeCompare(b.rule),
   );
 
+  allDiagnostics = allDiagnostics.map((diagnostic) => {
+    const classified = classifyDiagnostic(diagnostic);
+    return {
+      ...classified,
+      includedInScore: shouldIncludeInScore(classified, profile),
+    };
+  });
+
   const analyzerOrder = new Map(analyzers.map((a, i) => [a.id, i]));
   analyzerOrder.set('signal-readiness', analyzers.length);
   analyzerRuns.sort((a, b) =>
     (analyzerOrder.get(a.id) ?? Infinity) - (analyzerOrder.get(b.id) ?? Infinity),
   );
 
-  const score = calculateScore(allDiagnostics, {
+  const scoredDiagnostics = allDiagnostics.filter((diagnostic) => diagnostic.includedInScore);
+  const advisoryDiagnosticsCount = allDiagnostics.filter((diagnostic) => diagnostic.trust === 'advisory').length;
+  const excludedDiagnosticsCount = allDiagnostics.filter((diagnostic) => diagnostic.includedInScore === false).length;
+
+  const score = calculateScore(scoredDiagnostics, {
     fileCount: project.sourceFileCount,
   });
   const remediation = generateRemediation(allDiagnostics, {
@@ -353,5 +371,9 @@ export const scan = async (
     timestamp,
     configPath,
     analyzerRuns,
+    profile,
+    scoredDiagnosticsCount: scoredDiagnostics.length,
+    advisoryDiagnosticsCount,
+    excludedDiagnosticsCount,
   };
 };
