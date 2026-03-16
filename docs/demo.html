@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ng-xray Demo</title>
+<style>
+:root{
+  --bg:#0D1117;--bg-1:#161B22;--bg-2:#1C2128;
+  --border:#30363D;--text:#E6EDF3;--text-2:#8B949E;--text-3:#6E7681;
+  --accent:#3B82F6;--green:#3FB950;--amber:#E3A008;--red:#F85149;
+  --mono:ui-monospace,'Cascadia Code','SF Mono','Fira Code',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+
+.demo-container{max-width:1100px;margin:0 auto;padding:48px 24px 80px}
+
+.demo-header{text-align:center;margin-bottom:48px}
+.demo-logo{font-family:var(--mono);font-size:28px;font-weight:700;margin-bottom:8px}
+.demo-logo b{color:var(--accent)}
+.demo-subtitle{color:var(--text-2);font-size:14px;max-width:500px;margin:0 auto}
+
+.demo-tabs{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid var(--border)}
+.demo-tab{
+  flex:1;padding:12px 24px;text-align:center;cursor:pointer;
+  font:600 13px/1 var(--sans);color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;
+  border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none;
+}
+.demo-tab:hover{color:var(--text-2)}
+.demo-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+.demo-panel{display:none}
+.demo-panel.active{display:block}
+
+/* Terminal */
+.term{
+  background:var(--bg-1);border:1px solid var(--border);border-top:none;
+  border-radius:0 0 10px 10px;overflow:hidden;
+}
+.term-titlebar{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background:var(--bg-2);border-bottom:1px solid var(--border);
+}
+.term-dot{width:10px;height:10px;border-radius:50%;background:var(--border)}
+.term-dot.r{background:#FF5F57}.term-dot.y{background:#FEBC2E}.term-dot.g{background:#28C840}
+.term-title{flex:1;text-align:center;font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.term-body{
+  padding:20px;font-family:var(--mono);font-size:12px;line-height:1.7;
+  min-height:400px;white-space:pre-wrap;overflow-x:auto;
+}
+.term-body .prompt{color:var(--green)}
+.term-body .cmd{color:var(--text)}
+.term-body .dim{color:var(--text-3)}
+.term-body .blue{color:var(--accent)}
+.term-body .green{color:var(--green)}
+.term-body .amber{color:var(--amber)}
+.term-body .red{color:var(--red)}
+.term-body .white{color:var(--text)}
+.term-body .muted{color:var(--text-2)}
+.cursor-blink{display:inline-block;width:8px;height:16px;background:var(--text);animation:blink 1s step-end infinite;vertical-align:text-bottom}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.term-line{opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s}
+.term-line.visible{opacity:1;transform:translateY(0)}
+
+/* Report iframe */
+.report-frame{
+  border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;
+  overflow:hidden;background:var(--bg-1);
+}
+.report-frame iframe{
+  width:100%;height:700px;border:none;
+}
+
+/* Controls */
+.demo-controls{display:flex;justify-content:center;gap:12px;margin-top:24px}
+.demo-btn{
+  display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border-radius:8px;
+  font:500 13px/1 var(--sans);cursor:pointer;transition:all .15s;border:none;
+}
+.demo-btn-primary{background:var(--accent);color:#fff}
+.demo-btn-primary:hover{filter:brightness(1.1)}
+.demo-btn-ghost{background:none;border:1px solid var(--border);color:var(--text-2)}
+.demo-btn-ghost:hover{border-color:var(--text-3);color:var(--text)}
+
+.demo-footer{text-align:center;margin-top:48px;color:var(--text-3);font-size:12px}
+.demo-footer a{color:var(--accent);text-decoration:none}
+.demo-footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="demo-container">
+  <div class="demo-header">
+    <div class="demo-logo">ng<b>-xray</b></div>
+    <p class="demo-subtitle">Angular codebase health scanner. Run it on any Angular project to get an instant health score, actionable fixes, and a detailed report.</p>
+  </div>
+
+  <div class="demo-tabs">
+    <button class="demo-tab active" onclick="switchTab('cli')">Terminal</button>
+    <button class="demo-tab" onclick="switchTab('report')">Report</button>
+  </div>
+
+  <div id="panel-cli" class="demo-panel active">
+    <div class="term">
+      <div class="term-titlebar">
+        <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+        <span class="term-title">zsh — ng-xray</span>
+        <span style="width:38px"></span>
+      </div>
+      <div class="term-body" id="term-body"></div>
+    </div>
+    <div class="demo-controls">
+      <button class="demo-btn demo-btn-primary" onclick="replayTerminal()">&#9654; Replay</button>
+    </div>
+  </div>
+
+  <div id="panel-report" class="demo-panel">
+    <div class="report-frame">
+      <iframe src="demo-report.html" loading="lazy"></iframe>
+    </div>
+  </div>
+
+  <div class="demo-footer">
+    <p>Install: <code style="font-family:var(--mono);color:var(--text-2)">npx ng-xray ./my-angular-app --open</code></p>
+    <p style="margin-top:8px"><a href="https://github.com/user/ng-xray">GitHub</a></p>
+  </div>
+</div>
+
+<script>
+function switchTab(id){
+  document.querySelectorAll('.demo-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.demo-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.demo-tab[onclick*="'+id+'"]').classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+const LINES = [
+  {type:'prompt', text:'$ ', delay:400},
+  {type:'type', text:'npx ng-xray ./my-angular-app', delay:50},
+  {type:'pause', delay:600},
+  {text:''},
+  {text:'  <span class="blue">ng-xray</span> <span class="dim">v0.1.0</span>', delay:200},
+  {text:''},
+  {text:'  <span class="white">./my-angular-app</span>', delay:100},
+  {text:'  <span class="dim">Angular</span> <span class="white">19.0.0</span> <span class="dim">· 3 files · 1 components · 1 services · 0% standalone</span>'},
+  {text:''},
+  {text:'  <span class="dim">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>'},
+  {text:'  <span class="dim">Building class & template maps...</span>', delay:300},
+  {text:'  <span class="green">✔</span> Building class & template maps.', replace:true, delay:100},
+  {text:'  <span class="dim">Running analyzers...</span>', delay:200},
+  {text:'  <span class="green">✔</span> 11 analyzers complete.', replace:true, delay:800},
+  {text:''},
+  {text:'  <span class="amber">●</span>  <span class="white">security          </span> <span class="amber">1 warning</span>', delay:80},
+  {text:'  <span class="green">●</span>  <span class="white">architecture      </span> <span class="green">passed</span>', delay:80},
+  {text:'  <span class="amber">●</span>  <span class="white">performance       </span> <span class="amber">2 warnings</span>', delay:80},
+  {text:'  <span class="amber">●</span>  <span class="white">best-practices    </span> <span class="amber">2 warnings</span>', delay:80},
+  {text:'  <span class="amber">●</span>  <span class="white">dead-code         </span> <span class="amber">4 warnings</span>', delay:80},
+  {text:''},
+  {text:'  <span class="dim">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>', delay:200},
+  {text:''},
+  {text:'  <span class="blue" style="font-size:24px;font-weight:700">91</span><span class="dim">/100</span>  <span class="blue" style="font-weight:600">EXCELLENT</span>', delay:300},
+  {text:''},
+  {text:'    <span class="muted">best practices    </span><span class="green">███████████████████████</span><span class="dim">░░</span>  <span class="blue">23/25</span>', delay:60},
+  {text:'    <span class="muted">performance       </span><span class="green">███████████████████████</span><span class="dim">░░</span>  <span class="blue">18/20</span>', delay:60},
+  {text:'    <span class="muted">architecture      </span><span class="green">█████████████████████████</span>  <span class="blue">20/20</span>', delay:60},
+  {text:'    <span class="muted">dead code         </span><span class="amber">████████████████████</span><span class="dim">░░░░░</span>  <span class="amber">16/20</span>', delay:60},
+  {text:'    <span class="muted">security          </span><span class="green">███████████████████████</span><span class="dim">░░</span>  <span class="blue">14/15</span>', delay:60},
+  {text:''},
+  {text:'  <span class="dim">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>', delay:200},
+  {text:''},
+  {text:'  <span class="white">Top fixes</span>', delay:200},
+  {text:''},
+  {text:'  <span class="dim"> 1</span>  <span class="green">○</span>  <span class="white">File is not imported by any other fil…</span> <span class="muted">+ 2 pts   2 files  ~10 min</span>', delay:100},
+  {text:'  <span class="dim"> 2</span>  <span class="green">○</span>  <span class="white">Missing trackBy function in ngFor dir…</span> <span class="muted">+ 1 pts   1 files   ~3 min</span>', delay:100},
+  {text:'  <span class="dim"> 3</span>  <span class="green">○</span>  <span class="white">Component does not use OnPush change …</span> <span class="muted">+ 1 pts   1 files   ~2 min</span>', delay:100},
+  {text:'  <span class="dim"> 4</span>  <span class="green">○</span>  <span class="white">@angular/core: dependency is not used.</span> <span class="muted">+ 1 pts   1 files   ~5 min</span>', delay:100},
+  {text:'  <span class="dim"> 5</span>  <span class="green">○</span>  <span class="white">Service "UnusedService" is never inje…</span> <span class="muted">+ 1 pts   1 files   ~5 min</span>', delay:100},
+  {text:'  <span class="dim"> 6</span>  <span class="green">○</span>  <span class="white">Uses constructor injection instead of…</span> <span class="muted">+ 1 pts   1 files   ~5 min</span>', delay:100},
+  {text:''},
+  {text:'  <span class="white">Report</span>  <span class="blue" style="text-decoration:underline">/tmp/ng-xray/report.html</span>', delay:300},
+  {text:''},
+  {text:'  <span class="dim">7.7s</span>'},
+  {text:''},
+  {type:'prompt', text:'$ ', delay:400},
+];
+
+let termEl, cancelId;
+
+function replayTerminal(){
+  termEl = document.getElementById('term-body');
+  termEl.innerHTML = '';
+  if(cancelId) cancelId.cancelled = true;
+  const token = {cancelled:false};
+  cancelId = token;
+  playLines(0, token);
+}
+
+function playLines(idx, token){
+  if(token.cancelled || idx >= LINES.length) return;
+  const l = LINES[idx];
+  const delay = l.delay || 30;
+
+  if(l.type === 'prompt'){
+    const div = document.createElement('span');
+    div.className = 'term-line visible';
+    div.innerHTML = '<span class="prompt">' + l.text + '</span>';
+    termEl.appendChild(div);
+    setTimeout(()=> playLines(idx+1, token), delay);
+    return;
+  }
+
+  if(l.type === 'type'){
+    const parent = termEl.lastElementChild;
+    let ci = 0;
+    const iv = setInterval(()=>{
+      if(token.cancelled){clearInterval(iv);return;}
+      if(ci < l.text.length){
+        parent.innerHTML = '<span class="prompt">$ </span><span class="cmd">' + l.text.slice(0, ci+1) + '</span><span class="cursor-blink"></span>';
+        ci++;
+      } else {
+        parent.innerHTML = '<span class="prompt">$ </span><span class="cmd">' + l.text + '</span>';
+        clearInterval(iv);
+        setTimeout(()=> playLines(idx+1, token), l.delay || 200);
+      }
+    }, 40);
+    return;
+  }
+
+  if(l.type === 'pause'){
+    setTimeout(()=> playLines(idx+1, token), delay);
+    return;
+  }
+
+  if(l.replace && termEl.lastElementChild){
+    termEl.lastElementChild.innerHTML = l.text;
+    setTimeout(()=> playLines(idx+1, token), delay);
+    return;
+  }
+
+  const div = document.createElement('div');
+  div.className = 'term-line';
+  div.innerHTML = l.text || '&nbsp;';
+  termEl.appendChild(div);
+  requestAnimationFrame(()=>{
+    div.classList.add('visible');
+    termEl.scrollTop = termEl.scrollHeight;
+  });
+  setTimeout(()=> playLines(idx+1, token), delay);
+}
+
+replayTerminal();
+</script>
+
+</body>
+</html>

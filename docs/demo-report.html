@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ng-xray — test-app</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg-0:#0D1117;--bg-1:#161B22;--bg-2:#1C2128;--bg-3:#262C36;
+  --border:#30363D;--border-mid:#484F58;
+  --text:#E6EDF3;--text-2:#8B949E;--text-3:#6E7681;--text-ghost:#30363D;
+  --accent:#3B82F6;--accent-soft:rgba(59,130,246,0.08);--accent-border:rgba(59,130,246,0.2);--accent-glow:rgba(59,130,246,0.12);
+  --red:#F85149;--red-soft:rgba(248,81,73,0.1);--red-border:rgba(248,81,73,0.25);
+  --amber:#E3A008;--amber-soft:rgba(227,160,8,0.1);--amber-border:rgba(227,160,8,0.25);
+  --green:#3FB950;--green-soft:rgba(63,185,80,0.1);--green-border:rgba(63,185,80,0.25);
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:ui-monospace,'Cascadia Code','SF Mono','Fira Code',monospace;
+  --radius:10px;
+}
+[data-theme="light"]{
+  color-scheme:light;
+  --bg-0:#FFFFFF;--bg-1:#F6F8FA;--bg-2:#F0F2F5;--bg-3:#E1E4E8;
+  --border:#D0D7DE;--border-mid:#AFB8C1;
+  --text:#1F2328;--text-2:#656D76;--text-3:#8C959F;--text-ghost:#D0D7DE;
+  --accent:#2563EB;--accent-soft:rgba(37,99,235,0.06);--accent-border:rgba(37,99,235,0.15);--accent-glow:rgba(37,99,235,0.08);
+  --red:#CF222E;--red-soft:rgba(207,34,46,0.06);--red-border:rgba(207,34,46,0.15);
+  --amber:#BF8700;--amber-soft:rgba(191,135,0,0.06);--amber-border:rgba(191,135,0,0.15);
+  --green:#1A7F37;--green-soft:rgba(26,127,55,0.06);--green-border:rgba(26,127,55,0.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:var(--sans);font-weight:400;line-height:1.6;color:var(--text);background:var(--bg-0)}
+body::before{content:'';position:fixed;inset:0;z-index:-1;
+  background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);
+  background-size:24px 24px;opacity:.12;pointer-events:none}
+
+/* ── Top bar ── */
+.topbar{
+  position:sticky;top:0;z-index:100;height:60px;
+  display:flex;align-items:center;
+  background:color-mix(in srgb, var(--bg-0) 85%, transparent);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.topbar-inner{
+  display:flex;align-items:center;gap:12px;
+  max-width:960px;width:100%;margin:0 auto;padding:0 24px;
+}
+.topbar-brand{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.topbar-brand-name{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:-.02em;color:var(--text)}
+.topbar-brand-name b{color:var(--accent);font-weight:600}
+.topbar-search{
+  flex:1;height:32px;
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
+  font-size:12px;color:var(--text-3);cursor:pointer;transition:border-color .15s;
+}
+.topbar-search:hover{border-color:var(--border-mid)}
+.topbar-search kbd{font-family:var(--sans);font-size:10px;padding:2px 6px;border:1px solid var(--border-mid);border-radius:4px;color:var(--text-2);background:var(--bg-1);line-height:1.4;margin-left:auto}
+.topbar-actions{display:flex;gap:6px;flex-shrink:0}
+.topbar-btn{
+  height:30px;width:30px;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--text-3);background:var(--bg-2);
+  border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;
+}
+.topbar-btn:hover{color:var(--text);border-color:var(--border-mid)}
+
+/* ── Container ── */
+.container{max-width:960px;margin:0 auto;padding:0 24px 80px}
+
+/* ── Hero ── */
+.hero-card{
+  margin-top:32px;padding:40px;border-radius:14px;
+  background:var(--bg-1);border:1px solid var(--border);
+}
+.hero-inner{display:grid;grid-template-columns:220px 1fr;gap:48px;align-items:center}
+.hero-arc{text-align:center;position:relative}
+.hero-arc svg{width:200px;height:200px;transform:rotate(-90deg)}
+.arc-track{fill:none;stroke:var(--bg-3);stroke-width:8}
+.arc-fill{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1)}
+.hero-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.hero-num{font-family:var(--mono);font-size:56px;font-weight:700;line-height:1;font-feature-settings:'tnum'}
+.hero-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
+.hero-hint{font-size:10px;color:var(--text-3);margin-top:4px;letter-spacing:.02em}
+.hero-right{display:flex;flex-direction:column;gap:16px}
+.hero-bars{display:flex;flex-direction:column;gap:10px}
+.hero-bar-row{display:flex;align-items:center;gap:10px}
+.hero-bar-name{font-size:12px;color:var(--text-2);width:110px;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.hero-bar-name svg{color:var(--text-3);flex-shrink:0}
+.hero-bar-track{flex:1;height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden}
+.hero-bar-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.16,1,.3,1)}
+.hero-bar-val{font-family:var(--mono);font-size:11px;color:var(--text-3);width:40px;text-align:right;flex-shrink:0;font-feature-settings:'tnum'}
+.hero-stats{display:flex;padding-top:14px;border-top:1px solid var(--border)}
+.hero-stat{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 20px;border-left:1px solid var(--border)}
+.hero-stat:first-child{border-left:none;padding-left:0}
+.hero-stat:last-child{padding-right:0}
+.hero-stat-val{font-family:var(--mono);font-size:18px;font-weight:600;font-feature-settings:'tnum'}
+.hero-stat-val-text{font-family:var(--sans);font-size:14px;font-weight:600}
+.hero-stat-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em}
+
+/* ── Cards ── */
+.card{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600;color:var(--text)}
+.card-meta{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.card-body{padding:18px}
+
+/* ── Trend chart ── */
+.trend-card{margin-top:32px}
+.trend-deltas{display:flex;gap:10px;font-family:var(--mono);font-size:11px;font-weight:500}
+.td-up{color:var(--green)}.td-dn{color:var(--red)}
+.trend-svg{width:100%;display:block;margin-top:8px}
+.t-grid{stroke:var(--border);stroke-width:1}
+.t-lbl{fill:var(--text-3);font:400 10px/1 var(--mono)}
+.t-line{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.t-area{opacity:.65}
+.t-dot-g{cursor:pointer}
+.t-dot{transition:r .15s}
+.t-dot-g:hover .t-dot{r:5}
+
+/* ── Bento (2-col) ── */
+.bento{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:32px}
+
+/* ── Signal readiness ── */
+.sig-hero{display:flex;align-items:baseline;gap:6px;padding:18px 18px 0}
+.sig-score{font-family:var(--mono);font-size:36px;font-weight:700;font-feature-settings:'tnum';line-height:1}
+.sig-score-lbl{font-size:12px;color:var(--text-3)}
+.sig-bar-main{margin:10px 18px 0;height:6px;background:var(--bg-3);border-radius:3px;overflow:hidden}
+.sig-bar-main-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.16,1,.3,1)}
+.sig-patterns{padding:14px 18px}
+.sig-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.sig-row:last-child{border-bottom:none}
+.sig-row-name{font-size:12px;font-weight:500;width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sig-row-bar{flex:1;height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden}
+.sig-row-fill{height:100%;border-radius:2px}
+.sig-row-pct{font-family:var(--mono);font-size:11px;width:32px;text-align:right;flex-shrink:0}
+
+/* ── Hotspot ── */
+.hot-item{padding:8px 0;border-bottom:1px solid var(--border)}
+.hot-item:last-child{border-bottom:none}
+.hot-top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.hot-name{flex:1;font-size:11px;font-family:var(--mono);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.hot-counts{display:flex;gap:8px;font-family:var(--mono);font-size:10px;flex-shrink:0}
+.hot-counts span{display:flex;align-items:center;gap:3px}
+.hot-sev-dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+.hot-bar-track{height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden;display:flex;gap:1px}
+.hot-bar-err{height:100%;background:var(--red);border-radius:1px}
+.hot-bar-warn{height:100%;background:var(--amber);border-radius:1px}
+
+/* ── Sections ── */
+.section{margin-top:48px}
+.section-hdr{
+  display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer;
+  padding:4px 0;user-select:none;
+}
+.section-hdr:hover .section-title{color:var(--accent)}
+.section-title{font-size:15px;font-weight:600;color:var(--text);transition:color .15s}
+.section-meta{margin-left:auto;font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.section-chev{width:14px;height:14px;color:var(--text-3);transition:transform .2s;flex-shrink:0}
+.section.collapsed .section-body{display:none}
+.section.collapsed .section-chev{transform:rotate(-90deg)}
+
+/* ── Remediation ── */
+.rem-filter-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.rem-tier{border-bottom:1px solid var(--border)}
+.rem-tier:last-child{border-bottom:none}
+.rem-tier-hdr{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;cursor:pointer;
+  background:var(--bg-2);border-bottom:1px solid var(--border);user-select:none;transition:background .1s;
+}
+.rem-tier-hdr:hover{background:var(--bg-3)}
+.rem-tier-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em}
+.rem-tier-count{font-family:var(--mono);font-size:10px;color:var(--text-2);background:var(--bg-3);padding:1px 6px;border-radius:8px}
+.rem-tier-chev{width:10px;height:10px;color:var(--text-ghost);transition:transform .2s;margin-left:auto}
+.rem-tier.collapsed .rem-tier-body{display:none}
+.rem-tier.collapsed .rem-tier-chev{transform:rotate(-90deg)}
+.rem-item{
+  display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:start;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+}
+.rem-tier .rem-item:last-child{border-bottom:none}
+.rem-rank{font-family:var(--mono);font-size:11px;color:var(--text-ghost);padding-top:2px}
+.rem-desc{font-size:13px;font-weight:500;color:var(--text)}
+.rem-detail{font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5}
+.rem-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.rem-impact{
+  display:inline-block;padding:0 5px;border-radius:3px;font-size:10px;font-weight:600;font-family:var(--mono);line-height:18px;white-space:nowrap;
+  color:var(--accent);background:var(--accent-soft);
+}
+.btn-cursor{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:5px 12px;border-radius:6px;
+  font:500 11px/1 var(--sans);white-space:nowrap;cursor:pointer;transition:all .15s;
+  background:var(--accent);color:#fff;border:1px solid var(--accent);
+}
+.btn-cursor-icon{padding:5px;border-radius:50%;line-height:0;}
+.btn-cursor:hover{opacity:.9;box-shadow:0 0 12px var(--accent-glow)}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:6px;
+  font:500 11px/1 var(--sans);white-space:nowrap;cursor:pointer;transition:all .15s;
+  background:transparent;color:var(--text-3);border:1px solid var(--border);
+}
+.btn-ghost:hover{color:var(--text);border-color:var(--border-mid)}
+.rem-mega{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;background:var(--accent-soft);border-bottom:1px solid var(--accent-border);
+}
+.rem-mega-text{font-size:12px;color:var(--text-2)}
+.rem-mega-text strong{color:var(--text);font-weight:600}
+
+/* ── Findings ── */
+.filter-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.filter-chip{
+  display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  border-radius:14px;font-size:12px;font-weight:500;cursor:pointer;
+  border:1px solid var(--border);background:transparent;color:var(--text-3);transition:all .15s;
+}
+.filter-chip:hover{border-color:var(--border-mid);color:var(--text-2)}
+.filter-chip.active{background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent)}
+.filter-chip .cnt{font-family:var(--mono);font-size:10px;opacity:.6}
+.filter-search{
+  flex:1;min-width:140px;height:28px;padding:0 10px;
+  font:400 12px var(--sans);color:var(--text);
+  background:var(--bg-2);border:1px solid var(--border);border-radius:6px;
+  outline:none;transition:border-color .15s;
+}
+.filter-search::placeholder{color:var(--text-ghost)}
+.filter-search:focus{border-color:var(--accent-border)}
+
+.fgroup{border-bottom:1px solid var(--border)}
+.fgroup:last-child{border-bottom:none}
+.fgroup-trigger{
+  display:flex;align-items:flex-start;gap:8px;padding:10px 16px;
+  cursor:pointer;width:100%;background:none;border:none;
+  font-family:var(--sans);text-align:left;color:var(--text);transition:background .1s;
+}
+.fgroup-trigger:hover{background:var(--bg-2)}
+.chev{width:12px;height:12px;flex-shrink:0;color:var(--text-ghost);transition:transform .2s;margin-top:4px}
+.fgroup.open .chev{transform:rotate(90deg)}
+.sev-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.sev-e{background:var(--red)}.sev-w{background:var(--amber)}
+.fgroup-title{flex:1;font-size:13px;font-weight:500}
+.fgroup-count{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--bg-3);padding:1px 7px;border-radius:8px;margin-top:2px;flex-shrink:0}
+.fgroup-body{display:none;padding:4px 16px 16px 36px}
+.fgroup.open .fgroup-body{display:block}
+
+.explain{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;font-size:13px;line-height:1.6;color:var(--text-2)}
+.codes{display:grid;grid-template-columns:1fr;gap:8px;margin:10px 0}
+.code-block{border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.5;font-family:var(--mono);overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.code-bad{background:var(--red-soft);border:1px solid var(--red-border);color:color-mix(in srgb, var(--red) 70%, var(--text))}
+.code-good{background:var(--green-soft);border:1px solid var(--green-border);color:color-mix(in srgb, var(--green) 70%, var(--text))}
+.code-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.code-lbl-bad{color:var(--red)}.code-lbl-good{color:var(--green)}
+.effort-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+
+.files{margin-top:8px}
+.file{display:flex;align-items:center;gap:6px;padding:4px 0;font:300 12px/1.4 var(--mono);color:var(--text-3);position:relative}
+.file:hover{color:var(--text)}
+.fpath{cursor:pointer;transition:color .1s}
+.fpath:hover{color:var(--accent)}
+.factions{display:flex;gap:4px;opacity:0;transition:opacity .12s;margin-left:auto}
+.file:hover .factions{opacity:1}
+.files-more{
+  font-size:12px;color:var(--accent);padding:4px 0;font-family:var(--mono);
+  cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+  transition:color .15s;border:none;background:none;
+}
+.files-more:hover{color:var(--text);text-decoration:underline}
+.files-hidden{display:none}
+.files-hidden.show{display:block}
+.fgroup-actions{display:flex;gap:6px;flex-shrink:0;margin-top:1px}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:0 5px;border-radius:3px;font-size:10px;font-weight:600;font-family:var(--mono);text-transform:lowercase;letter-spacing:.01em;line-height:18px;border:none;background:none}
+.badge-high{color:var(--red);background:var(--red-soft)}
+.badge-med{color:var(--amber);background:var(--amber-soft)}
+.badge-low{color:var(--green);background:var(--green-soft)}
+.badge-qf{color:var(--green);background:var(--green-soft)}
+.badge-mod{color:var(--amber);background:var(--amber-soft)}
+.badge-ref{color:var(--red);background:var(--red-soft)}
+
+/* ── Command palette ── */
+.cmd-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:min(18vh,140px)}
+.cmd-overlay.open{display:flex}
+.cmd-box{width:680px;max-height:500px;background:var(--bg-1);border:1px solid var(--border-mid);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.cmd-input{width:100%;height:48px;padding:0 18px;font:400 15px var(--sans);color:var(--text);background:transparent;border:none;border-bottom:1px solid var(--border);outline:none}
+.cmd-input::placeholder{color:var(--text-ghost)}
+.cmd-results{max-height:440px;overflow-y:auto;padding:8px}
+.cmd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;font-size:13px;color:var(--text-2);cursor:pointer;transition:background .1s}
+.cmd-item:hover,.cmd-item.focused{background:var(--bg-2);color:var(--text)}
+.cmd-item-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cmd-item-cat{font-size:10px;color:var(--text-ghost);font-family:var(--mono);flex-shrink:0}
+.cmd-item-sev{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cmd-empty{padding:24px;text-align:center;font-size:12px;color:var(--text-3)}
+
+/* ── Tooltip ── */
+[data-tip]{position:relative}
+[data-tip]:hover::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  padding:5px 10px;border-radius:6px;font:400 11px/1.4 var(--sans);white-space:nowrap;
+  background:var(--text);color:var(--bg-0);z-index:50;pointer-events:none;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg-0);font-size:12px;padding:8px 18px;border-radius:8px;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;font-family:var(--sans);font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.toast.on{opacity:1}
+.kbd-hint{position:fixed;bottom:16px;right:16px;font-size:10px;color:var(--text-3);display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.kbd-hint-row{display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s;text-transform:uppercase;letter-spacing:.04em}
+.kbd-hint-row:hover{color:var(--text-2)}
+.kbd-hint-row span{font-size:10px;font-family:var(--sans);white-space:nowrap}
+.kbd-hint kbd{font-family:var(--sans);font-size:10px;padding:2px 6px;border:1px solid var(--border-mid);border-radius:4px;color:var(--text-2);background:var(--bg-1);line-height:1.4}
+.score-popup{display:none;position:fixed;bottom:50px;right:16px;width:480px;max-height:70vh;overflow-y:auto;background:var(--bg-1);border:1px solid var(--border-mid);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);z-index:200;padding:20px}
+.score-popup.open{display:block}
+.score-popup-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.score-popup-close{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border:none;background:none;color:var(--text-3);cursor:pointer;border-radius:4px;font-size:16px;transition:color .1s}
+.score-popup-close:hover{color:var(--text)}
+
+/* ── Scan meta ── */
+.scan-meta{margin-top:32px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.scan-meta-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.scan-meta-item{display:flex;align-items:baseline;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.scan-meta-item:nth-child(4n){border-right:none}
+.scan-meta-item:nth-last-child(-n+4){border-bottom:none}
+.scan-meta-lbl{font-size:11px;color:var(--text-3);white-space:nowrap}
+.scan-meta-val{font-size:12px;font-family:var(--mono);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Analyzer summary ── */
+.az-row{display:grid;grid-template-columns:1fr 70px 56px 72px 100px;gap:8px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);font-size:12px}
+.az-row:last-child{border-bottom:none}
+.az-hdr{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;background:var(--bg-2)}
+.az-name{font-weight:500;color:var(--text);display:flex;align-items:center;gap:6px}
+.az-status{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:500}
+.az-ran{color:var(--green)}.az-failed{color:var(--red)}.az-skipped{color:var(--text-3)}
+.az-count{font-family:var(--mono);font-size:11px;color:var(--text-2);text-align:right}
+.az-dur{font-family:var(--mono);font-size:11px;color:var(--text-3);text-align:right}
+.az-stab{text-align:right}
+.az-wrap{border-bottom:1px solid var(--border)}
+.az-wrap:last-child{border-bottom:none}
+.az-wrap .az-row{border-bottom:none}
+.az-wrap.has-err .az-row{cursor:pointer}
+.az-wrap.has-err .az-row:hover{background:var(--bg-2)}
+.az-err-body{display:none;padding:0 16px 10px 16px;font-size:11px;font-family:var(--mono);color:var(--text-3);line-height:1.5}
+.az-wrap.open .az-err-body{display:block}
+.az-err-toggle{width:10px;height:10px;color:var(--text-ghost);transition:transform .2s;flex-shrink:0}
+.az-wrap.open .az-err-toggle{transform:rotate(90deg)}
+
+/* ── Score methodology ── */
+.meth-text{font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:14px}
+.meth-table{width:100%;border-collapse:collapse;font-size:12px}
+.meth-table th{text-align:left;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;padding:6px 10px;border-bottom:1px solid var(--border)}
+.meth-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-2)}
+.meth-table td:first-child{font-weight:500;color:var(--text)}
+.meth-table .mono{font-family:var(--mono);font-feature-settings:'tnum'}
+.meth-note{margin-top:14px;font-size:12px;color:var(--text-3);line-height:1.5}
+.meth-rule-caps{margin-top:12px;font-size:12px;color:var(--text-2);line-height:1.5}
+.meth-rule-caps code{font-family:var(--mono);font-size:11px;background:var(--bg-2);padding:1px 5px;border-radius:3px}
+
+/* ── Print ── */
+@media print{
+  body::before,.topbar,.cmd-overlay,.toast,.kbd-hint,.score-popup,.factions,.btn-cursor,.btn-ghost,.filter-search,.topbar-search,.rem-filter-bar,.section-chev{display:none!important}
+  .card{break-inside:avoid}
+  .fgroup-body,.rem-tier-body,.section-body{display:block!important}
+  .section.collapsed .section-body{display:block!important}
+  body,[data-theme]{--bg-0:#fff;--bg-1:#fafafa;--bg-2:#f4f4f5;--bg-3:#e4e4e7;--border:#e4e4e7;--text:#1f2328;--text-2:#656d76;--text-3:#8c959f;--text-ghost:#d0d7de;color-scheme:light}
+  .hero-card{background:var(--bg-1)!important}
+}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .hero-inner{grid-template-columns:1fr;text-align:center}
+  .hero-bars{margin-top:16px}
+  .hero-stats{flex-wrap:wrap;gap:12px 0}
+  .hero-stat{flex:1 0 50%;border-left:none;padding:6px 0;border-top:1px solid var(--border)}
+  .hero-stat:first-child,.hero-stat:nth-child(2){border-top:none}
+  .bento{grid-template-columns:1fr}
+  .codes{grid-template-columns:1fr}
+  .container{padding:0 16px 48px}
+  .topbar-search{display:none}
+  .cmd-box{width:calc(100vw - 32px)}
+  .score-popup{width:calc(100vw - 32px);right:16px;left:16px}
+  .rem-item{grid-template-columns:20px 1fr;gap:8px}
+  .rem-actions{grid-column:span 2;margin-top:6px}
+  .scan-meta-grid{grid-template-columns:repeat(2,1fr)}
+  .az-row{grid-template-columns:1fr 60px 48px 54px 70px;gap:4px;padding:8px 10px}
+}
+@media(max-width:480px){
+  .filter-bar,.rem-filter-bar{flex-direction:column;align-items:stretch}
+  .az-row{grid-template-columns:1fr auto;gap:4px}
+  .az-hdr .az-dur,.az-hdr .az-stab,.az-dur,.az-stab{display:none}
+}
+</style>
+<script>(function(){var t=localStorage.getItem('ng-xray-theme');if(t)document.documentElement.setAttribute('data-theme',t);})()</script>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-brand"><svg width="48" height="48" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes xr-spin{to{transform:rotate(360deg)}}
+    @keyframes xr-spin-rev{to{transform:rotate(-360deg)}}
+    @keyframes xr-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  </style>
+  <line x1="32" y1="4" x2="32" y2="14" stroke="var(--text-ghost)" stroke-width="1" stroke-linecap="round"/>
+  <line x1="32" y1="50" x2="32" y2="60" stroke="var(--text-ghost)" stroke-width="1" stroke-linecap="round"/>
+  <line x1="4" y1="32" x2="14" y2="32" stroke="var(--text-ghost)" stroke-width="1" stroke-linecap="round"/>
+  <line x1="50" y1="32" x2="60" y2="32" stroke="var(--text-ghost)" stroke-width="1" stroke-linecap="round"/>
+  <g style="transform-origin:32px 32px;animation:xr-spin 4s linear infinite">
+    <circle cx="32" cy="32" r="20" fill="none" stroke="var(--border)" stroke-width="1.5"/>
+    <path d="M32 12 A20 20 0 0 1 52 32" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M32 52 A20 20 0 0 1 12 32" fill="none" stroke="var(--accent)" stroke-width="1" stroke-linecap="round" opacity=".2"/>
+    <line x1="52" y1="32" x2="47" y2="32" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <g style="transform-origin:32px 32px;animation:xr-spin-rev 7s linear infinite">
+    <circle cx="32" cy="32" r="13" fill="none" stroke="var(--border)" stroke-width="1"/>
+    <line x1="32" y1="19" x2="32" y2="22" stroke="var(--text-ghost)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="45" y1="32" x2="42" y2="32" stroke="var(--text-ghost)" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <circle cx="32" cy="32" r="2.5" fill="var(--accent)" style="animation:xr-pulse 2s ease-in-out infinite"/>
+  <text x="32" y="37" fill="var(--text)" font-family="var(--mono)" font-size="14" font-weight="600" text-anchor="middle">X</text>
+</svg><span class="topbar-brand-name">ng<b>-xray</b></span></div>
+      <div class="topbar-search" onclick="openCmd()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Search findings, files, rules…
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="toggleTheme()" data-tip="Toggle theme">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        </button>
+        <button class="topbar-btn" onclick="window.print()" data-tip="Print report">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+<div class="container">
+  
+  <div class="hero-card">
+    <div class="hero-inner">
+      <div class="hero-arc" data-tip="Overall health score out of 100">
+        <svg viewBox="0 0 180 180">
+          <circle cx="90" cy="90" r="80" class="arc-track"/>
+          <circle cx="90" cy="90" r="80" class="arc-fill" stroke="#3B82F6"
+            stroke-dasharray="502.6548245743669" stroke-dashoffset="502.6548245743669"
+            data-target-offset="45.23893421169301"/>
+        </svg>
+        <div class="hero-center">
+          <div class="hero-num" style="color:var(--accent)" data-hero-score="91">0</div>
+          <div class="hero-label" style="color:var(--accent)">Excellent</div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-bars"><div class="hero-bar-row" data-tip="Best Practices: 23/25 pts, 2 issues">
+      <span class="hero-bar-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> Best Practices</span>
+      <div class="hero-bar-track"><div class="hero-bar-fill" style="width:92%;background:#3B82F6"></div></div>
+      <span class="hero-bar-val">23/25</span>
+    </div><div class="hero-bar-row" data-tip="Performance: 18/20 pts, 2 issues">
+      <span class="hero-bar-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Performance</span>
+      <div class="hero-bar-track"><div class="hero-bar-fill" style="width:90%;background:#3B82F6"></div></div>
+      <span class="hero-bar-val">18/20</span>
+    </div><div class="hero-bar-row" data-tip="Architecture: 20/20 pts, 0 issues">
+      <span class="hero-bar-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg> Architecture</span>
+      <div class="hero-bar-track"><div class="hero-bar-fill" style="width:100%;background:#3B82F6"></div></div>
+      <span class="hero-bar-val">20/20</span>
+    </div><div class="hero-bar-row" data-tip="Dead Code: 16/20 pts, 4 issues">
+      <span class="hero-bar-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Dead Code</span>
+      <div class="hero-bar-track"><div class="hero-bar-fill" style="width:80%;background:#E3A008"></div></div>
+      <span class="hero-bar-val">16/20</span>
+    </div><div class="hero-bar-row" data-tip="Security: 14/15 pts, 1 issues">
+      <span class="hero-bar-name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg> Security</span>
+      <div class="hero-bar-track"><div class="hero-bar-fill" style="width:93%;background:#3B82F6"></div></div>
+      <span class="hero-bar-val">14/15</span>
+    </div></div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="hero-stat-val" style="color:var(--text-3)">0</span><span class="hero-stat-lbl">Errors</span></div>
+          <div class="hero-stat"><span class="hero-stat-val" style="color:var(--amber)">9</span><span class="hero-stat-lbl">Warnings</span></div>
+          <div class="hero-stat"><span class="hero-stat-val">7</span><span class="hero-stat-lbl">Affected Files</span></div>
+          <div class="hero-stat"><span class="hero-stat-val">8</span><span class="hero-stat-lbl">Top Fixes</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="scan-meta">
+    <div class="scan-meta-grid">
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Project</span><span class="scan-meta-val" title="/tmp/ng-xray-test">test-app</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Scanned</span><span class="scan-meta-val">Mar 15, 2026 02:11 AM</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">ng-xray</span><span class="scan-meta-val">v0.1.0</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Angular</span><span class="scan-meta-val">19.0.0</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Duration</span><span class="scan-meta-val">4.5s</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Config</span><span class="scan-meta-val" title="defaults">defaults</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Analyzers</span><span class="scan-meta-val">11 ran</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Status</span><span class="scan-meta-val"><span style="color:var(--green)">complete</span></span></div>
+    </div>
+  </div>
+  <div class="card trend-card">
+    <div class="card-header"><span class="card-title">Score Trend</span><div class="trend-deltas"><span class="td-up">+0 pts</span><span class="td-up">+0 issues</span></div></div>
+    <div class="card-body" style="padding:12px 14px"><svg viewBox="0 0 880 156" class="trend-svg"><line x1="32" y1="116" x2="868" y2="116" class="t-grid"/><text x="26" y="119" text-anchor="end" class="t-lbl">0</text><line x1="32" y1="63" x2="868" y2="63" class="t-grid"/><text x="26" y="66" text-anchor="end" class="t-lbl">50</text><line x1="32" y1="10" x2="868" y2="10" class="t-grid"/><text x="26" y="13" text-anchor="end" class="t-lbl">100</text><defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3B82F6" stop-opacity=".25"/><stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/></linearGradient></defs><path d="M32.0 19.5 L60.8 19.5 L89.7 19.5 L118.5 19.5 L147.3 19.5 L176.1 19.5 L205.0 19.5 L233.8 19.5 L262.6 19.5 L291.4 19.5 L320.3 19.5 L349.1 19.5 L377.9 19.5 L406.8 19.5 L435.6 19.5 L464.4 19.5 L493.2 19.5 L522.1 19.5 L550.9 19.5 L579.7 19.5 L608.6 19.5 L637.4 19.5 L666.2 19.5 L695.0 19.5 L723.9 19.5 L752.7 19.5 L781.5 19.5 L810.3 19.5 L839.2 19.5 L868.0 19.5 L868.0 116 L32.0 116Z" fill="url(#tg)" class="t-area"/><path d="M32.0 19.5 L60.8 19.5 L89.7 19.5 L118.5 19.5 L147.3 19.5 L176.1 19.5 L205.0 19.5 L233.8 19.5 L262.6 19.5 L291.4 19.5 L320.3 19.5 L349.1 19.5 L377.9 19.5 L406.8 19.5 L435.6 19.5 L464.4 19.5 L493.2 19.5 L522.1 19.5 L550.9 19.5 L579.7 19.5 L608.6 19.5 L637.4 19.5 L666.2 19.5 L695.0 19.5 L723.9 19.5 L752.7 19.5 L781.5 19.5 L810.3 19.5 L839.2 19.5 L868.0 19.5" stroke="#3B82F6" class="t-line"/><g class="t-dot-g"><circle cx="32.0" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 14: 91/100, 9 issues</title></circle><circle cx="32.0" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="60.8" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 14: 91/100, 9 issues</title></circle><circle cx="60.8" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="89.7" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 14: 91/100, 9 issues</title></circle><circle cx="89.7" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="118.5" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 14: 91/100, 9 issues</title></circle><circle cx="118.5" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="147.3" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 14: 91/100, 9 issues</title></circle><circle cx="147.3" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="176.1" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="176.1" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="205.0" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="205.0" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="233.8" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="233.8" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="262.6" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="262.6" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="291.4" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="291.4" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="320.3" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="320.3" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="349.1" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="349.1" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="377.9" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="377.9" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="406.8" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="406.8" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="435.6" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="435.6" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="464.4" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="464.4" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="493.2" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="493.2" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="522.1" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="522.1" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="550.9" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="550.9" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="579.7" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="579.7" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="608.6" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="608.6" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="637.4" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="637.4" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="666.2" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="666.2" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="695.0" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="695.0" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="723.9" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="723.9" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="752.7" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="752.7" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="781.5" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="781.5" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="810.3" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="810.3" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="839.2" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="839.2" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><g class="t-dot-g"><circle cx="868.0" cy="19.5" r="12" fill="transparent" class="t-dot-hit"><title>Mar 15: 91/100, 9 issues</title></circle><circle cx="868.0" cy="19.5" r="3" fill="#3B82F6" class="t-dot" pointer-events="none"/></g><text x="32.0" y="132" text-anchor="start" class="t-lbl">Mar 14</text><text x="464.4" y="132" text-anchor="middle" class="t-lbl">Mar 15</text><text x="868.0" y="132" text-anchor="end" class="t-lbl">Mar 15</text></svg></div>
+  </div>
+
+  <div class="bento">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Signal Readiness</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 18px;gap:6px;min-height:120px">
+        <span style="font-family:var(--mono);font-size:36px;font-weight:700;color:var(--red);line-height:1">0%</span>
+        <span style="font-size:12px;color:var(--text-3)">No Angular signals detected</span>
+      </div>
+    </div>
+    <div class="card">
+    <div class="card-header"><span class="card-title">File Hotspots</span><span class="card-meta">top 6</span></div>
+    <div class="card-body" style="padding:10px 18px"><div class="hot-item" title="src/app/app.component.html">
+      <div class="hot-top">
+        <span class="hot-name">app.component.html</span>
+        <div class="hot-counts">
+          
+          <span><span class="hot-sev-dot" style="background:var(--amber)"></span>2</span>
+        </div>
+      </div>
+      <div class="hot-bar-track">
+        
+        <div class="hot-bar-warn" style="width:100.0%"></div>
+      </div>
+    </div><div class="hot-item" title="src/app/app.component.ts">
+      <div class="hot-top">
+        <span class="hot-name">app.component.ts</span>
+        <div class="hot-counts">
+          
+          <span><span class="hot-sev-dot" style="background:var(--amber)"></span>2</span>
+        </div>
+      </div>
+      <div class="hot-bar-track">
+        
+        <div class="hot-bar-warn" style="width:100.0%"></div>
+      </div>
+    </div><div class="hot-item" title="../../Users/n.tamir/Documents/programming/ng-xray/src/app/app.component.ts">
+      <div class="hot-top">
+        <span class="hot-name">app.component.ts</span>
+        <div class="hot-counts">
+          
+          <span><span class="hot-sev-dot" style="background:var(--amber)"></span>1</span>
+        </div>
+      </div>
+      <div class="hot-bar-track">
+        
+        <div class="hot-bar-warn" style="width:50.0%"></div>
+      </div>
+    </div><div class="hot-item" title="../../Users/n.tamir/Documents/programming/ng-xray/src/app/unused.service.ts">
+      <div class="hot-top">
+        <span class="hot-name">unused.service.ts</span>
+        <div class="hot-counts">
+          
+          <span><span class="hot-sev-dot" style="background:var(--amber)"></span>1</span>
+        </div>
+      </div>
+      <div class="hot-bar-track">
+        
+        <div class="hot-bar-warn" style="width:50.0%"></div>
+      </div>
+    </div><div class="hot-item" title="../../Users/n.tamir/Documents/programming/ng-xray/package.json">
+      <div class="hot-top">
+        <span class="hot-name">package.json</span>
+        <div class="hot-counts">
+          
+          <span><span class="hot-sev-dot" style="background:var(--amber)"></span>1</span>
+        </div>
+      </div>
+      <div class="hot-bar-track">
+        
+        <div class="hot-bar-warn" style="width:50.0%"></div>
+      </div>
+    </div><div class="hot-item" title="src/app/unused.service.ts">
+      <div class="hot-top">
+        <span class="hot-name">unused.service.ts</span>
+        <div class="hot-counts">
+          
+          <span><span class="hot-sev-dot" style="background:var(--amber)"></span>1</span>
+        </div>
+      </div>
+      <div class="hot-bar-track">
+        
+        <div class="hot-bar-warn" style="width:50.0%"></div>
+      </div>
+    </div></div>
+  </div>
+  </div>
+
+  <div class="section" id="s-analyzers">
+    <div class="section-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
+      <span class="section-title">Analyzer Summary</span>
+      <span class="section-meta">11 analyzers</span>
+      <svg class="section-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="card">
+        <div class="az-row az-hdr">
+          <span>Analyzer</span><span>Status</span><span class="az-count">Findings</span><span class="az-dur">Duration</span><span class="az-stab">Stability</span>
+        </div>
+        <div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Dead code (generic)</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">3</span>
+        <span class="az-dur">4.0s</span>
+        <span class="az-stab"><span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Dead code (Angular)</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">1</span>
+        <span class="az-dur">46ms</span>
+        <span class="az-stab"><span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Dead class members</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">0</span>
+        <span class="az-dur">44ms</span>
+        <span class="az-stab"><span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Performance</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">1</span>
+        <span class="az-dur">43ms</span>
+        <span class="az-stab"><span style="font-size:11px;color:var(--text-3)">stable</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Lazy loading</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">0</span>
+        <span class="az-dur">41ms</span>
+        <span class="az-stab"><span style="font-size:11px;color:var(--text-3)">stable</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Circular injection</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">0</span>
+        <span class="az-dur">6ms</span>
+        <span class="az-stab"><span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Best practices</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">1</span>
+        <span class="az-dur">5ms</span>
+        <span class="az-stab"><span style="font-size:11px;color:var(--text-3)">stable</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Security</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">1</span>
+        <span class="az-dur">2ms</span>
+        <span class="az-stab"><span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Architecture</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">0</span>
+        <span class="az-dur">509ms</span>
+        <span class="az-stab"><span style="font-size:11px;color:var(--text-3)">stable</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Lint checks</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">1</span>
+        <span class="az-dur">4.5s</span>
+        <span class="az-stab"><span style="font-size:11px;color:var(--text-3)">stable</span></span>
+      </div>
+    </div><div class="az-wrap">
+      <div class="az-row">
+        <span class="az-name">Signal readiness</span>
+        <span class="az-status az-ran">&#10003; ran</span>
+        <span class="az-count">1</span>
+        <span class="az-dur">2ms</span>
+        <span class="az-stab"><span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span></span>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+  <div class="section" id="s-rem">
+    <div class="section-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
+      <span class="section-title">Remediation Plan</span>
+      <span class="section-meta">+9 pts possible</span>
+      <svg class="section-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="card">
+        
+        <div class="rem-filter-bar"><button onclick="filterEffort('all')" data-effort="all" class="filter-chip active">All <span class="cnt">8</span></button><button onclick="filterEffort('quick-fix')" data-effort="quick-fix" class="filter-chip">Quick Wins <span class="cnt">3</span></button><button onclick="filterEffort('moderate')" data-effort="moderate" class="filter-chip">Moderate <span class="cnt">1</span></button><button onclick="filterEffort('refactor')" data-effort="refactor" class="filter-chip">Refactors <span class="cnt">4</span></button></div>
+        <div id="rem-list"><div class="rem-tier" data-effort="quick-fix">
+      <div class="rem-tier-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="rem-tier-label">Quick Wins</span>
+        <span class="rem-tier-count">3</span>
+        <svg class="rem-tier-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+      </div>
+      <div class="rem-tier-body"><div class="rem-item">
+        <span class="rem-rank">1</span>
+        <div>
+          <div class="rem-desc">Missing trackBy function in ngFor directive</div>
+          <div class="rem-detail">1 file · <span class="badge badge-low">low</span> · <span class="rem-impact">+1</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: @angular-eslint/template/use-track-by-function (performance)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: Missing trackBy function in ngFor directive\n\nGuidance: Add a `trackBy` function to *ngFor or a `track` expression to @for to avoid unnecessary DOM re-renders.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- src/app/app.component.html:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div><div class="rem-item">
+        <span class="rem-rank">2</span>
+        <div>
+          <div class="rem-desc">Component does not use OnPush change detection strategy.</div>
+          <div class="rem-detail">1 file · <span class="badge badge-low">low</span> · <span class="rem-impact">+1</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: missing-onpush (performance)\nSeverity: warning\nRisk level: high\nTotal instances: 1 across 1 files\n\nIssue: Component does not use OnPush change detection strategy.\n\nGuidance: Add `changeDetection: ChangeDetectionStrategy.OnPush` to the @Component decorator to improve performance.\n\nWhy this matters:\nSwitching to OnPush changes how Angular detects changes -- it will only re-render when @Input references change, events fire from the component/children, or you manually trigger detection. If the component or its children rely on mutable object mutations, direct service property reads without observables/signals, or setTimeout/setInterval updates, switching to OnPush will break them silently with no compile-time error.\n\nAffected files:\n- src/app/app.component.ts:4\n\nBefore making ANY changes, you MUST:\n1. Read the component .ts and .html files completely\n2. Identify all data sources: @Input(), services, observables, signals, mutable state, and getters\n3. Check if the template uses the async pipe or reads service properties directly (e.g., `this.service.data` without observable)\n4. Check for setTimeout, setInterval, or Promise-based updates that mutate state without triggering change detection\n5. Inspect all child components -- if they also lack OnPush, consider migrating bottom-up (leaves first, then parents)\n6. Determine if ChangeDetectorRef.markForCheck() or ChangeDetectorRef.detectChanges() is needed anywhere\n7. Create a plan listing every change: adding OnPush, wrapping mutable state in signals/observables, adding async pipes, and any markForCheck() calls\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div><div class="rem-item">
+        <span class="rem-rank">3</span>
+        <div>
+          <div class="rem-desc">Template uses [innerHTML] binding which can expose the app to XSS.</div>
+          <div class="rem-detail">1 file · <span class="badge badge-low">low</span> · <span class="rem-impact">+1</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: innerhtml-binding (security)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: Template uses [innerHTML] binding which can expose the app to XSS.\n\nGuidance: Using [innerHTML] can expose your app to XSS attacks. Sanitize content through DomSanitizer or use Angular's built-in text interpolation instead.\n\nWhy this matters:\nWhile Angular sanitizes [innerHTML] by default, complex HTML from APIs or user input can bypass sanitization in edge cases. Direct innerHTML usage also makes the template harder to reason about security-wise.\n\nAffected files:\n- src/app/app.component.html:2\n\nBefore making ANY changes, you MUST:\n1. Check what data is bound to [innerHTML] and where it comes from\n2. If it's static or trusted content: consider using text interpolation or a component instead\n3. If it's dynamic HTML from an API: ensure server-side sanitization and use DomSanitizer explicitly\n4. If it's user-generated content: replace with a safe rendering library or markdown parser\n5. Verify Angular's default sanitization is not being bypassed elsewhere for this value\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div></div>
+    </div><div class="rem-tier" data-effort="moderate">
+      <div class="rem-tier-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="rem-tier-label">Moderate Effort</span>
+        <span class="rem-tier-count">1</span>
+        <svg class="rem-tier-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+      </div>
+      <div class="rem-tier-body"><div class="rem-item">
+        <span class="rem-rank">4</span>
+        <div>
+          <div class="rem-desc">Signal readiness score is 0%. Consider migrating legacy patterns to Angular signals.</div>
+          <div class="rem-detail">1 file · <span class="badge badge-low">low</span> · <span class="rem-impact">+1</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: low-signal-readiness (best-practices)\nSeverity: warning\nRisk level: low\nTotal instances: 1 across 1 files\n\nIssue: Signal readiness score is 0%. Consider migrating legacy patterns to Angular signals.\n\nGuidance: Start with: Migrate constructor injection to inject() — mechanical, no behavior change.\n\nWhy this matters:\nAngular Signals provide fine-grained reactivity, better performance, and less boilerplate than the legacy patterns (decorators, BehaviorSubject, .subscribe()). Migrating incrementally improves the codebase and prepares it for future Angular versions.\n\nAffected files:\n- project-wide:0\n\nBefore making ANY changes, you MUST:\n1. Review the signal readiness report to see which patterns have the most legacy usage\n2. Start with the lowest effort migrations: @Input() -&gt; input(), constructor injection -&gt; inject()\n3. Plan migrations in phases: one pattern type at a time across the codebase\n4. For each migration, verify that tests pass and behavior is unchanged\n5. Leave complex migrations (BehaviorSubject -&gt; signal, .subscribe() -&gt; toSignal) for later phases\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div></div>
+    </div><div class="rem-tier" data-effort="refactor">
+      <div class="rem-tier-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="rem-tier-label">Refactors</span>
+        <span class="rem-tier-count">4</span>
+        <svg class="rem-tier-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+      </div>
+      <div class="rem-tier-body"><div class="rem-item">
+        <span class="rem-rank">5</span>
+        <div>
+          <div class="rem-desc">File is not imported by any other file.</div>
+          <div class="rem-detail">2 files · <span class="badge badge-low">low</span> · <span class="rem-impact">+2</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-file (dead-code)\nSeverity: warning\nRisk level: medium\nTotal instances: 2 across 2 files\n\nIssue: File is not imported by any other file.\n\nGuidance: Remove this file if it is no longer needed, or add an import to it.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- ../../Users/n.tamir/Documents/programming/ng-xray/src/app/app.component.ts:1\n- ../../Users/n.tamir/Documents/programming/ng-xray/src/app/unused.service.ts:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 2 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div><div class="rem-item">
+        <span class="rem-rank">6</span>
+        <div>
+          <div class="rem-desc">@angular/core: dependency is not used.</div>
+          <div class="rem-detail">1 file · <span class="badge badge-low">low</span> · <span class="rem-impact">+1</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-dependency (dead-code)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: @angular/core: dependency is not used.\n\nGuidance: Remove this unused dependency or add a consumer.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- ../../Users/n.tamir/Documents/programming/ng-xray/package.json:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div><div class="rem-item">
+        <span class="rem-rank">7</span>
+        <div>
+          <div class="rem-desc">Service &quot;UnusedService&quot; is never injected or referenced anywhere.</div>
+          <div class="rem-detail">1 file · <span class="badge badge-low">low</span> · <span class="rem-impact">+1</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-service (dead-code)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: Service \&quot;UnusedService\&quot; is never injected or referenced anywhere.\n\nGuidance: Remove this service if it is no longer needed.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- src/app/unused.service.ts:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div><div class="rem-item">
+        <span class="rem-rank">8</span>
+        <div>
+          <div class="rem-desc">Uses constructor injection instead of the inject() function.</div>
+          <div class="rem-detail">1 file · <span class="badge badge-low">low</span> · <span class="rem-impact">+1</span></div>
+        </div>
+        <div class="rem-actions">
+          <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: prefer-inject (best-practices)\nSeverity: warning\nRisk level: low\nTotal instances: 1 across 1 files\n\nIssue: Uses constructor injection instead of the inject() function.\n\nGuidance: Migrate to `inject()`: replace `constructor(private svc: MyService)` with `private svc = inject(MyService)`.\n\nWhy this matters:\nConstructor injection is the legacy pattern. The inject() function is the modern Angular way (since v14+). It enables: injection outside constructors (field initializers), better tree-shaking, less boilerplate, and easier testing. This is a stylistic migration with low risk.\n\nAffected files:\n- src/app/app.component.ts:11\n\nBefore making ANY changes, you MUST:\n1. List all constructor parameters that use access modifiers (private, protected, public, readonly)\n2. Convert each to a class field using inject(): `private svc = inject(MyService)`\n3. Remove the constructor if it becomes empty, or remove only the DI parameters\n4. Verify the component still compiles and tests pass\n5. Check if any constructor parameters are used in super() calls -- those may need special handling\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+        </div>
+      </div></div>
+    </div></div>
+      </div>
+    </div>
+  </div>
+  <div class="section" id="s-find">
+    <div class="section-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
+      <span class="section-title">Findings</span>
+      <span class="section-meta">9 total</span>
+      <svg class="section-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+    </div>
+    <div class="section-body">
+      <div class="card">
+        <div class="filter-bar">
+          <button onclick="filterCat('all')" data-cat="all" class="filter-chip active">All <span class="cnt">9</span></button>
+          <button onclick="filterCat('best-practices')" data-cat="best-practices" class="filter-chip">Best Practices <span class="cnt">2</span></button><button onclick="filterCat('performance')" data-cat="performance" class="filter-chip">Performance <span class="cnt">2</span></button><button onclick="filterCat('dead-code')" data-cat="dead-code" class="filter-chip">Dead Code <span class="cnt">4</span></button><button onclick="filterCat('security')" data-cat="security" class="filter-chip">Security <span class="cnt">1</span></button>
+          <input class="filter-search" type="text" placeholder="Search rules or files…" oninput="filterSearch(this.value)"/>
+        </div>
+        <div id="findings-list"><div class="fgroup" data-cat="dead-code" data-rule="unused-file" data-sev="warning" id="fg-dead-code-unused-file">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-dead-code-unused-file')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">File is not imported by any other file. <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span></span>
+          <span class="fgroup-count" data-tip="2 affected files">2</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-file (dead-code)\nSeverity: warning\nRisk level: medium\nTotal instances: 2 across 2 files\n\nIssue: File is not imported by any other file.\n\nGuidance: Remove this file if it is no longer needed, or add an import to it.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- ../../Users/n.tamir/Documents/programming/ng-xray/src/app/app.component.ts:1\n- ../../Users/n.tamir/Documents/programming/ng-xray/src/app/unused.service.ts:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 2 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><p style="color:var(--text-2);font-size:13px;margin-bottom:10px">Remove this file if it is no longer needed, or add an import to it.</p><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('../../Users/n.tamir/Documents/programming/ng-xray/src/app/app.component.ts:1')" title="Click to copy path">../../Users/n.tamir/Documents/programming/ng-xray/src/app/app.component.ts:1</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-file (dead-code)\nFile: ../../Users/n.tamir/Documents/programming/ng-xray/src/app/app.component.ts at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: File is not imported by any other file.\n\nGuidance: Remove this file if it is no longer needed, or add an import to it.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-file (dead-code)\nFile: ../../Users/n.tamir/Documents/programming/ng-xray/src/app/app.component.ts at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: File is not imported by any other file.\n\nGuidance: Remove this file if it is no longer needed, or add an import to it.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div><div class="file">
+          <span class="fpath" onclick="cpPath('../../Users/n.tamir/Documents/programming/ng-xray/src/app/unused.service.ts:1')" title="Click to copy path">../../Users/n.tamir/Documents/programming/ng-xray/src/app/unused.service.ts:1</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-file (dead-code)\nFile: ../../Users/n.tamir/Documents/programming/ng-xray/src/app/unused.service.ts at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: File is not imported by any other file.\n\nGuidance: Remove this file if it is no longer needed, or add an import to it.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-file (dead-code)\nFile: ../../Users/n.tamir/Documents/programming/ng-xray/src/app/unused.service.ts at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: File is not imported by any other file.\n\nGuidance: Remove this file if it is no longer needed, or add an import to it.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div><div class="fgroup" data-cat="best-practices" data-rule="prefer-inject" data-sev="warning" id="fg-best-practices-prefer-inject">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-best-practices-prefer-inject')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">Uses constructor injection instead of the inject() function.</span>
+          <span class="fgroup-count" data-tip="1 affected file">1</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: prefer-inject (best-practices)\nSeverity: warning\nRisk level: low\nTotal instances: 1 across 1 files\n\nIssue: Uses constructor injection instead of the inject() function.\n\nGuidance: Migrate to `inject()`: replace `constructor(private svc: MyService)` with `private svc = inject(MyService)`.\n\nWhy this matters:\nConstructor injection is the legacy pattern. The inject() function is the modern Angular way (since v14+). It enables: injection outside constructors (field initializers), better tree-shaking, less boilerplate, and easier testing. This is a stylistic migration with low risk.\n\nAffected files:\n- src/app/app.component.ts:11\n\nBefore making ANY changes, you MUST:\n1. List all constructor parameters that use access modifiers (private, protected, public, readonly)\n2. Convert each to a class field using inject(): `private svc = inject(MyService)`\n3. Remove the constructor if it becomes empty, or remove only the DI parameters\n4. Verify the component still compiles and tests pass\n5. Check if any constructor parameters are used in super() calls -- those may need special handling\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><p style="color:var(--text-2);font-size:13px;margin-bottom:10px">Migrate to `inject()`: replace `constructor(private svc: MyService)` with `private svc = inject(MyService)`.</p><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('src/app/app.component.ts:11')" title="Click to copy path">src/app/app.component.ts:11</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: prefer-inject (best-practices)\nFile: src/app/app.component.ts at line 11\nSeverity: warning\nRisk level: low\n\nIssue: Uses constructor injection instead of the inject() function.\n\nGuidance: Migrate to `inject()`: replace `constructor(private svc: MyService)` with `private svc = inject(MyService)`.\n\nWhy this matters:\nConstructor injection is the legacy pattern. The inject() function is the modern Angular way (since v14+). It enables: injection outside constructors (field initializers), better tree-shaking, less boilerplate, and easier testing. This is a stylistic migration with low risk.\n\nBefore making ANY changes, you MUST investigate:\n1. List all constructor parameters that use access modifiers (private, protected, public, readonly)\n2. Convert each to a class field using inject(): `private svc = inject(MyService)`\n3. Remove the constructor if it becomes empty, or remove only the DI parameters\n4. Verify the component still compiles and tests pass\n5. Check if any constructor parameters are used in super() calls -- those may need special handling\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: prefer-inject (best-practices)\nFile: src/app/app.component.ts at line 11\nSeverity: warning\nRisk level: low\n\nIssue: Uses constructor injection instead of the inject() function.\n\nGuidance: Migrate to `inject()`: replace `constructor(private svc: MyService)` with `private svc = inject(MyService)`.\n\nWhy this matters:\nConstructor injection is the legacy pattern. The inject() function is the modern Angular way (since v14+). It enables: injection outside constructors (field initializers), better tree-shaking, less boilerplate, and easier testing. This is a stylistic migration with low risk.\n\nBefore making ANY changes, you MUST investigate:\n1. List all constructor parameters that use access modifiers (private, protected, public, readonly)\n2. Convert each to a class field using inject(): `private svc = inject(MyService)`\n3. Remove the constructor if it becomes empty, or remove only the DI parameters\n4. Verify the component still compiles and tests pass\n5. Check if any constructor parameters are used in super() calls -- those may need special handling\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div><div class="fgroup" data-cat="best-practices" data-rule="low-signal-readiness" data-sev="warning" id="fg-best-practices-low-signal-readiness">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-best-practices-low-signal-readiness')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">Low Signal Adoption <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span></span>
+          <span class="fgroup-count" data-tip="1 affected file">1</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: low-signal-readiness (best-practices)\nSeverity: warning\nRisk level: low\nTotal instances: 1 across 1 files\n\nIssue: Signal readiness score is 0%. Consider migrating legacy patterns to Angular signals.\n\nGuidance: Start with: Migrate constructor injection to inject() — mechanical, no behavior change.\n\nWhy this matters:\nAngular Signals provide fine-grained reactivity, better performance, and less boilerplate than the legacy patterns (decorators, BehaviorSubject, .subscribe()). Migrating incrementally improves the codebase and prepares it for future Angular versions.\n\nAffected files:\n- project-wide:0\n\nBefore making ANY changes, you MUST:\n1. Review the signal readiness report to see which patterns have the most legacy usage\n2. Start with the lowest effort migrations: @Input() -&gt; input(), constructor injection -&gt; inject()\n3. Plan migrations in phases: one pattern type at a time across the codebase\n4. For each migration, verify that tests pass and behavior is unchanged\n5. Leave complex migrations (BehaviorSubject -&gt; signal, .subscribe() -&gt; toSignal) for later phases\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><div class="explain">
+        Angular Signals provide fine-grained reactivity and eliminate the need for manual subscription management. Adopting signals improves performance and reduces boilerplate.
+        <div class="codes">
+          <div><div class="code-lbl code-lbl-bad">Before</div><div class="code-block code-bad">@Input() name: string;
+this.data$.subscribe(d =&gt; this.data = d);</div></div>
+          <div><div class="code-lbl code-lbl-good">After</div><div class="code-block code-good">name = input&lt;string&gt;();
+data = toSignal(this.data$);</div></div>
+        </div>
+        <div class="effort-row"><span class="badge badge-mod">moderate</span></div>
+      </div><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('project-wide:0')" title="Click to copy path">project-wide:0</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: low-signal-readiness (best-practices)\nFile: project-wide at line 0\nSeverity: warning\nRisk level: low\n\nIssue: Signal readiness score is 0%. Consider migrating legacy patterns to Angular signals.\n\nGuidance: Start with: Migrate constructor injection to inject() — mechanical, no behavior change.\n\nWhy this matters:\nAngular Signals provide fine-grained reactivity, better performance, and less boilerplate than the legacy patterns (decorators, BehaviorSubject, .subscribe()). Migrating incrementally improves the codebase and prepares it for future Angular versions.\n\nBefore making ANY changes, you MUST investigate:\n1. Review the signal readiness report to see which patterns have the most legacy usage\n2. Start with the lowest effort migrations: @Input() -&gt; input(), constructor injection -&gt; inject()\n3. Plan migrations in phases: one pattern type at a time across the codebase\n4. For each migration, verify that tests pass and behavior is unchanged\n5. Leave complex migrations (BehaviorSubject -&gt; signal, .subscribe() -&gt; toSignal) for later phases\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: low-signal-readiness (best-practices)\nFile: project-wide at line 0\nSeverity: warning\nRisk level: low\n\nIssue: Signal readiness score is 0%. Consider migrating legacy patterns to Angular signals.\n\nGuidance: Start with: Migrate constructor injection to inject() — mechanical, no behavior change.\n\nWhy this matters:\nAngular Signals provide fine-grained reactivity, better performance, and less boilerplate than the legacy patterns (decorators, BehaviorSubject, .subscribe()). Migrating incrementally improves the codebase and prepares it for future Angular versions.\n\nBefore making ANY changes, you MUST investigate:\n1. Review the signal readiness report to see which patterns have the most legacy usage\n2. Start with the lowest effort migrations: @Input() -&gt; input(), constructor injection -&gt; inject()\n3. Plan migrations in phases: one pattern type at a time across the codebase\n4. For each migration, verify that tests pass and behavior is unchanged\n5. Leave complex migrations (BehaviorSubject -&gt; signal, .subscribe() -&gt; toSignal) for later phases\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div><div class="fgroup" data-cat="performance" data-rule="@angular-eslint/template/use-track-by-function" data-sev="warning" id="fg-performance--angular-eslint-template-use-track-by-function">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-performance--angular-eslint-template-use-track-by-function')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">Missing trackBy in *ngFor / track in @for</span>
+          <span class="fgroup-count" data-tip="1 affected file">1</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: @angular-eslint/template/use-track-by-function (performance)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: Missing trackBy function in ngFor directive\n\nGuidance: Add a `trackBy` function to *ngFor or a `track` expression to @for to avoid unnecessary DOM re-renders.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- src/app/app.component.html:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><div class="explain">
+        Without trackBy, Angular destroys and recreates DOM elements on every change. With large lists this causes jank and memory thrashing.
+        <div class="codes">
+          <div><div class="code-lbl code-lbl-bad">Before</div><div class="code-block code-bad">&lt;div *ngFor=&quot;let item of items&quot;&gt;{{ item.name }}&lt;/div&gt;</div></div>
+          <div><div class="code-lbl code-lbl-good">After</div><div class="code-block code-good">&lt;div *ngFor=&quot;let item of items; trackBy: trackById&quot;&gt;{{ item.name }}&lt;/div&gt;</div></div>
+        </div>
+        <div class="effort-row"><span class="badge badge-qf">quick-fix</span></div>
+      </div><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('src/app/app.component.html:1')" title="Click to copy path">src/app/app.component.html:1</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: @angular-eslint/template/use-track-by-function (performance)\nFile: src/app/app.component.html at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: Missing trackBy function in ngFor directive\n\nGuidance: Add a `trackBy` function to *ngFor or a `track` expression to @for to avoid unnecessary DOM re-renders.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: @angular-eslint/template/use-track-by-function (performance)\nFile: src/app/app.component.html at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: Missing trackBy function in ngFor directive\n\nGuidance: Add a `trackBy` function to *ngFor or a `track` expression to @for to avoid unnecessary DOM re-renders.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div><div class="fgroup" data-cat="performance" data-rule="missing-onpush" data-sev="warning" id="fg-performance-missing-onpush">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-performance-missing-onpush')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">Missing OnPush Change Detection</span>
+          <span class="fgroup-count" data-tip="1 affected file">1</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: missing-onpush (performance)\nSeverity: warning\nRisk level: high\nTotal instances: 1 across 1 files\n\nIssue: Component does not use OnPush change detection strategy.\n\nGuidance: Add `changeDetection: ChangeDetectionStrategy.OnPush` to the @Component decorator to improve performance.\n\nWhy this matters:\nSwitching to OnPush changes how Angular detects changes -- it will only re-render when @Input references change, events fire from the component/children, or you manually trigger detection. If the component or its children rely on mutable object mutations, direct service property reads without observables/signals, or setTimeout/setInterval updates, switching to OnPush will break them silently with no compile-time error.\n\nAffected files:\n- src/app/app.component.ts:4\n\nBefore making ANY changes, you MUST:\n1. Read the component .ts and .html files completely\n2. Identify all data sources: @Input(), services, observables, signals, mutable state, and getters\n3. Check if the template uses the async pipe or reads service properties directly (e.g., `this.service.data` without observable)\n4. Check for setTimeout, setInterval, or Promise-based updates that mutate state without triggering change detection\n5. Inspect all child components -- if they also lack OnPush, consider migrating bottom-up (leaves first, then parents)\n6. Determine if ChangeDetectorRef.markForCheck() or ChangeDetectorRef.detectChanges() is needed anywhere\n7. Create a plan listing every change: adding OnPush, wrapping mutable state in signals/observables, adding async pipes, and any markForCheck() calls\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><div class="explain">
+        Without OnPush, Angular runs change detection on every browser event for this component. This can cause hundreds of unnecessary re-checks per second in large applications.
+        <div class="codes">
+          <div><div class="code-lbl code-lbl-bad">Before</div><div class="code-block code-bad">@Component({ selector: 'app-foo' })
+export class FooComponent {}</div></div>
+          <div><div class="code-lbl code-lbl-good">After</div><div class="code-block code-good">@Component({
+  selector: 'app-foo',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class FooComponent {}</div></div>
+        </div>
+        <div class="effort-row"><span class="badge badge-qf">quick-fix</span></div>
+      </div><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('src/app/app.component.ts:4')" title="Click to copy path">src/app/app.component.ts:4</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: missing-onpush (performance)\nFile: src/app/app.component.ts at line 4\nSeverity: warning\nRisk level: high\n\nIssue: Component does not use OnPush change detection strategy.\n\nGuidance: Add `changeDetection: ChangeDetectionStrategy.OnPush` to the @Component decorator to improve performance.\n\nWhy this matters:\nSwitching to OnPush changes how Angular detects changes -- it will only re-render when @Input references change, events fire from the component/children, or you manually trigger detection. If the component or its children rely on mutable object mutations, direct service property reads without observables/signals, or setTimeout/setInterval updates, switching to OnPush will break them silently with no compile-time error.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the component .ts and .html files completely\n2. Identify all data sources: @Input(), services, observables, signals, mutable state, and getters\n3. Check if the template uses the async pipe or reads service properties directly (e.g., `this.service.data` without observable)\n4. Check for setTimeout, setInterval, or Promise-based updates that mutate state without triggering change detection\n5. Inspect all child components -- if they also lack OnPush, consider migrating bottom-up (leaves first, then parents)\n6. Determine if ChangeDetectorRef.markForCheck() or ChangeDetectorRef.detectChanges() is needed anywhere\n7. Create a plan listing every change: adding OnPush, wrapping mutable state in signals/observables, adding async pipes, and any markForCheck() calls\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: missing-onpush (performance)\nFile: src/app/app.component.ts at line 4\nSeverity: warning\nRisk level: high\n\nIssue: Component does not use OnPush change detection strategy.\n\nGuidance: Add `changeDetection: ChangeDetectionStrategy.OnPush` to the @Component decorator to improve performance.\n\nWhy this matters:\nSwitching to OnPush changes how Angular detects changes -- it will only re-render when @Input references change, events fire from the component/children, or you manually trigger detection. If the component or its children rely on mutable object mutations, direct service property reads without observables/signals, or setTimeout/setInterval updates, switching to OnPush will break them silently with no compile-time error.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the component .ts and .html files completely\n2. Identify all data sources: @Input(), services, observables, signals, mutable state, and getters\n3. Check if the template uses the async pipe or reads service properties directly (e.g., `this.service.data` without observable)\n4. Check for setTimeout, setInterval, or Promise-based updates that mutate state without triggering change detection\n5. Inspect all child components -- if they also lack OnPush, consider migrating bottom-up (leaves first, then parents)\n6. Determine if ChangeDetectorRef.markForCheck() or ChangeDetectorRef.detectChanges() is needed anywhere\n7. Create a plan listing every change: adding OnPush, wrapping mutable state in signals/observables, adding async pipes, and any markForCheck() calls\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div><div class="fgroup" data-cat="dead-code" data-rule="unused-dependency" data-sev="warning" id="fg-dead-code-unused-dependency">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-dead-code-unused-dependency')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">@angular/core: dependency is not used. <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span></span>
+          <span class="fgroup-count" data-tip="1 affected file">1</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-dependency (dead-code)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: @angular/core: dependency is not used.\n\nGuidance: Remove this unused dependency or add a consumer.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- ../../Users/n.tamir/Documents/programming/ng-xray/package.json:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><p style="color:var(--text-2);font-size:13px;margin-bottom:10px">Remove this unused dependency or add a consumer.</p><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('../../Users/n.tamir/Documents/programming/ng-xray/package.json:1')" title="Click to copy path">../../Users/n.tamir/Documents/programming/ng-xray/package.json:1</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-dependency (dead-code)\nFile: ../../Users/n.tamir/Documents/programming/ng-xray/package.json at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: @angular/core: dependency is not used.\n\nGuidance: Remove this unused dependency or add a consumer.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-dependency (dead-code)\nFile: ../../Users/n.tamir/Documents/programming/ng-xray/package.json at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: @angular/core: dependency is not used.\n\nGuidance: Remove this unused dependency or add a consumer.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div><div class="fgroup" data-cat="dead-code" data-rule="unused-service" data-sev="warning" id="fg-dead-code-unused-service">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-dead-code-unused-service')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">Service &quot;UnusedService&quot; is never injected or referenced anywhere. <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span></span>
+          <span class="fgroup-count" data-tip="1 affected file">1</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-service (dead-code)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: Service \&quot;UnusedService\&quot; is never injected or referenced anywhere.\n\nGuidance: Remove this service if it is no longer needed.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nAffected files:\n- src/app/unused.service.ts:1\n\nBefore making ANY changes, you MUST:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><p style="color:var(--text-2);font-size:13px;margin-bottom:10px">Remove this service if it is no longer needed.</p><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('src/app/unused.service.ts:1')" title="Click to copy path">src/app/unused.service.ts:1</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-service (dead-code)\nFile: src/app/unused.service.ts at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: Service \&quot;UnusedService\&quot; is never injected or referenced anywhere.\n\nGuidance: Remove this service if it is no longer needed.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: unused-service (dead-code)\nFile: src/app/unused.service.ts at line 1\nSeverity: warning\nRisk level: medium\n\nIssue: Service \&quot;UnusedService\&quot; is never injected or referenced anywhere.\n\nGuidance: Remove this service if it is no longer needed.\n\nWhy this matters:\nThis issue was flagged by ng-xray as a code quality concern that should be addressed to improve the overall health of the codebase.\n\nBefore making ANY changes, you MUST investigate:\n1. Read the affected file completely to understand the context\n2. Understand why this pattern is problematic\n3. Identify the safest way to fix it without breaking existing behavior\n4. Check for similar patterns in related files\n5. Create a plan with all required changes before modifying any files\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div><div class="fgroup" data-cat="security" data-rule="innerhtml-binding" data-sev="warning" id="fg-security-innerhtml-binding">
+        <div class="fgroup-trigger" onclick="toggleGroup('fg-security-innerhtml-binding')">
+          <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+          <span class="sev-dot sev-w" data-tip="Warning"></span>
+          <span class="fgroup-title">innerHTML Binding in Template <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span></span>
+          <span class="fgroup-count" data-tip="1 affected file">1</span>
+          <div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: innerhtml-binding (security)\nSeverity: warning\nRisk level: medium\nTotal instances: 1 across 1 files\n\nIssue: Template uses [innerHTML] binding which can expose the app to XSS.\n\nGuidance: Using [innerHTML] can expose your app to XSS attacks. Sanitize content through DomSanitizer or use Angular's built-in text interpolation instead.\n\nWhy this matters:\nWhile Angular sanitizes [innerHTML] by default, complex HTML from APIs or user input can bypass sanitization in edge cases. Direct innerHTML usage also makes the template harder to reason about security-wise.\n\nAffected files:\n- src/app/app.component.html:2\n\nBefore making ANY changes, you MUST:\n1. Check what data is bound to [innerHTML] and where it comes from\n2. If it's static or trusted content: consider using text interpolation or a component instead\n3. If it's dynamic HTML from an API: ensure server-side sanitization and use DomSanitizer explicitly\n4. If it's user-generated content: replace with a safe rendering library or markdown parser\n5. Verify Angular's default sanitization is not being bypassed elsewhere for this value\n\nImportant: This is a batch fix across 1 files. You must:\n1. Start with a comprehensive plan covering ALL affected files\n2. Group files by risk level (some may need more careful migration than others)\n3. Propose a phased approach if the change set is large\n4. Identify files that may need additional changes beyond the direct fix (e.g., tests, imports)\n5. After I approve the plan, execute the changes file by file, verifying each one\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor" style="font-size:10px;padding:3px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg> Fix all</button></div>
+        </div>
+        <div class="fgroup-body"><div class="explain">
+        Binding to [innerHTML] can render unsanitized HTML. While Angular sanitizes by default, dynamic HTML from user input or APIs can still introduce XSS risks.
+        <div class="codes">
+          <div><div class="code-lbl code-lbl-bad">Before</div><div class="code-block code-bad">&lt;div [innerHTML]=&quot;userContent&quot;&gt;&lt;/div&gt;</div></div>
+          <div><div class="code-lbl code-lbl-good">After</div><div class="code-block code-good">&lt;!-- Use text interpolation or sanitize explicitly --&gt;
+&lt;div&gt;{{ userContent }}&lt;/div&gt;</div></div>
+        </div>
+        <div class="effort-row"><span class="badge badge-qf">quick-fix</span></div>
+      </div><div class="files"><div class="file">
+          <span class="fpath" onclick="cpPath('src/app/app.component.html:2')" title="Click to copy path">src/app/app.component.html:2</span>
+          <div class="factions">
+            <button onclick='cursorFix(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: innerhtml-binding (security)\nFile: src/app/app.component.html at line 2\nSeverity: warning\nRisk level: medium\n\nIssue: Template uses [innerHTML] binding which can expose the app to XSS.\n\nGuidance: Using [innerHTML] can expose your app to XSS attacks. Sanitize content through DomSanitizer or use Angular's built-in text interpolation instead.\n\nWhy this matters:\nWhile Angular sanitizes [innerHTML] by default, complex HTML from APIs or user input can bypass sanitization in edge cases. Direct innerHTML usage also makes the template harder to reason about security-wise.\n\nBefore making ANY changes, you MUST investigate:\n1. Check what data is bound to [innerHTML] and where it comes from\n2. If it's static or trusted content: consider using text interpolation or a component instead\n3. If it's dynamic HTML from an API: ensure server-side sanitization and use DomSanitizer explicitly\n4. If it's user-generated content: replace with a safe rendering library or markdown parser\n5. Verify Angular's default sanitization is not being bypassed elsewhere for this value\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></button>
+            <button onclick='cpPrompt(&quot;You are in plan mode. Do NOT make any changes yet.\n\nng-xray (Angular health scanner) detected the following issue:\n\nRule: innerhtml-binding (security)\nFile: src/app/app.component.html at line 2\nSeverity: warning\nRisk level: medium\n\nIssue: Template uses [innerHTML] binding which can expose the app to XSS.\n\nGuidance: Using [innerHTML] can expose your app to XSS attacks. Sanitize content through DomSanitizer or use Angular's built-in text interpolation instead.\n\nWhy this matters:\nWhile Angular sanitizes [innerHTML] by default, complex HTML from APIs or user input can bypass sanitization in edge cases. Direct innerHTML usage also makes the template harder to reason about security-wise.\n\nBefore making ANY changes, you MUST investigate:\n1. Check what data is bound to [innerHTML] and where it comes from\n2. If it's static or trusted content: consider using text interpolation or a component instead\n3. If it's dynamic HTML from an API: ensure server-side sanitization and use DomSanitizer explicitly\n4. If it's user-generated content: replace with a safe rendering library or markdown parser\n5. Verify Angular's default sanitization is not being bypassed elsewhere for this value\n\nPresent your full remediation plan first. List every file and change you intend to make, explain the reasoning, and highlight any risks. Do not modify any files until I explicitly confirm the plan.&quot;)' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
+          </div>
+        </div></div></div>
+      </div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="cmd-overlay" id="cmd-overlay" onclick="if(event.target===this)closeCmd()">
+  <div class="cmd-box">
+    <input class="cmd-input" type="text" placeholder="Search findings, rules, files…" oninput="renderCmdResults(this.value.toLowerCase())"/>
+    <div class="cmd-results" id="cmd-results"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="score-popup" id="score-popup">
+    <div class="score-popup-title">Score Details <button class="score-popup-close" onclick="toggleScoreInfo()">&times;</button></div>
+    <div class="meth-text">
+      The score starts at 100. Each diagnostic deducts points based on severity:
+      <strong>error&nbsp;=&nbsp;3</strong>,
+      <strong>warning&nbsp;=&nbsp;1</strong>.
+      Deductions are capped per rule and per category so that a single issue type
+      cannot dominate the score. When issue density is low relative to project size,
+      deductions are scaled down.
+    </div>
+    <table class="meth-table">
+      <thead><tr><th>Category</th><th>Max</th><th>Deducted</th><th>Remaining</th><th>Used</th></tr></thead>
+      <tbody><tr>
+      <td>Best Practices</td>
+      <td class="mono">25</td>
+      <td class="mono">2</td>
+      <td class="mono">23</td>
+      <td class="mono">8%</td>
+    </tr><tr>
+      <td>Performance</td>
+      <td class="mono">20</td>
+      <td class="mono">2</td>
+      <td class="mono">18</td>
+      <td class="mono">10%</td>
+    </tr><tr>
+      <td>Architecture</td>
+      <td class="mono">20</td>
+      <td class="mono">0</td>
+      <td class="mono">20</td>
+      <td class="mono">0%</td>
+    </tr><tr>
+      <td>Dead Code</td>
+      <td class="mono">20</td>
+      <td class="mono">4</td>
+      <td class="mono">16</td>
+      <td class="mono">20%</td>
+    </tr><tr>
+      <td>Security</td>
+      <td class="mono">15</td>
+      <td class="mono">1</td>
+      <td class="mono">14</td>
+      <td class="mono">7%</td>
+    </tr></tbody>
+    </table>
+    <div class="meth-rule-caps"><strong>Per-rule caps:</strong> <code>prefer-inject</code>&nbsp;≤&nbsp;8, <code>missing-onpush</code>&nbsp;≤&nbsp;10, <code>@angular-eslint/template/use-track-by-function</code>&nbsp;≤&nbsp;6, <code>@angular-eslint/prefer-standalone</code>&nbsp;≤&nbsp;8, <code>@angular-eslint/template/alt-text</code>&nbsp;≤&nbsp;4, <code>@angular-eslint/template/click-events-have-key-events</code>&nbsp;≤&nbsp;4</div>
+    
+  </div>
+<div class="kbd-hint">
+  <div class="kbd-hint-row" onclick="openCmd()"><span>Search</span><kbd>⌘K</kbd></div>
+  <div class="kbd-hint-row" onclick="toggleScoreInfo()"><span>Score details</span><kbd>⌘D</kbd></div>
+</div>
+
+<script>
+(function(){
+  var saved = localStorage.getItem('ng-xray-theme');
+  if(saved) document.documentElement.setAttribute('data-theme', saved);
+
+  var arc = document.querySelector('.arc-fill');
+  if(arc){
+    var target = +arc.getAttribute('data-target-offset');
+    requestAnimationFrame(function(){ arc.style.strokeDashoffset = target; });
+  }
+
+  var hero = document.querySelector('[data-hero-score]');
+  if(hero){
+    var tgt = +hero.getAttribute('data-hero-score');
+    var t0 = performance.now();
+    (function tick(now){
+      var p = Math.min((now - t0) / 1400, 1);
+      var ease = 1 - Math.pow(1 - p, 3);
+      hero.textContent = Math.round(ease * tgt);
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+})();
+
+function toggleTheme(){
+  var cur = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('ng-xray-theme', next);
+}
+
+function toggleGroup(id){
+  var el = document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+var activeCat = 'all';
+function filterCat(cat){
+  activeCat = cat;
+  document.querySelectorAll('#s-find .filter-chip').forEach(function(c){ c.classList.toggle('active', c.getAttribute('data-cat') === cat); });
+  applyFilters();
+}
+
+var searchQuery = '';
+function filterSearch(q){ searchQuery = q.toLowerCase(); applyFilters(); }
+
+function applyFilters(){
+  document.querySelectorAll('.fgroup').forEach(function(g){
+    var catMatch = activeCat === 'all' || g.getAttribute('data-cat') === activeCat;
+    var rule = (g.getAttribute('data-rule') || '').toLowerCase();
+    var title = (g.querySelector('.fgroup-title')?.textContent || '').toLowerCase();
+    var searchMatch = !searchQuery || rule.indexOf(searchQuery) !== -1 || title.indexOf(searchQuery) !== -1;
+    g.style.display = catMatch && searchMatch ? '' : 'none';
+  });
+}
+
+var activeEffort = 'all';
+function filterEffort(effort){
+  activeEffort = effort;
+  document.querySelectorAll('#s-rem .filter-chip').forEach(function(c){ c.classList.toggle('active', c.getAttribute('data-effort') === effort); });
+  document.querySelectorAll('.rem-tier').forEach(function(t){ t.style.display = (effort === 'all' || t.getAttribute('data-effort') === effort) ? '' : 'none'; });
+}
+
+function toggleFiles(id, btn){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var showing = el.classList.contains('show');
+  el.classList.toggle('show');
+  btn.textContent = showing ? btn.textContent.replace('Hide', 'Show').replace('▴', '▾') : btn.textContent.replace('Show', 'Hide').replace('▾', '▴');
+}
+
+function cpPath(t){ navigator.clipboard.writeText(t).then(function(){ toast('Path copied'); }); }
+
+function cursorFix(t){
+  var u = 'cursor://anysphere.cursor-deeplink/prompt?text=' + encodeURIComponent(t);
+  if(u.length > 8000){ navigator.clipboard.writeText(t).then(function(){ toast('Prompt too long — copied to clipboard'); }); return; }
+  window.location.href = u;
+}
+
+function cpPrompt(t){ navigator.clipboard.writeText(t).then(function(){ toast('Prompt copied'); }); }
+
+function toast(m){
+  var t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = m; t.classList.add('on');
+  clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove('on'); }, 2000);
+}
+
+function toggleScoreInfo(){
+  var p = document.getElementById('score-popup');
+  if(p) p.classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  var p = document.getElementById('score-popup');
+  if(!p||!p.classList.contains('open')) return;
+  if(!p.contains(e.target)&&!e.target.closest('.kbd-hint-row')) p.classList.remove('open');
+});
+
+var cmdOpen = false;
+function openCmd(){
+  var o = document.getElementById('cmd-overlay'); if(!o) return;
+  o.classList.add('open'); cmdOpen = true;
+  var i = o.querySelector('.cmd-input'); if(i){i.value='';i.focus();}
+  renderCmdResults('');
+}
+function closeCmd(){ var o = document.getElementById('cmd-overlay'); if(o) o.classList.remove('open'); cmdOpen = false; }
+
+function renderCmdResults(q){
+  var c = document.getElementById('cmd-results'); if(!c) return;
+  var results = [];
+  document.querySelectorAll('.fgroup').forEach(function(g){
+    var rule = g.getAttribute('data-rule')||'', title = g.querySelector('.fgroup-title')?.textContent||'';
+    var cat = g.getAttribute('data-cat')||'', sev = g.getAttribute('data-sev')||'', id = g.id;
+    if(!q || rule.toLowerCase().indexOf(q)!==-1 || title.toLowerCase().indexOf(q)!==-1) results.push({title:title,cat:cat,sev:sev,id:id});
+  });
+  if(!results.length){ c.innerHTML='<div class="cmd-empty">No results found</div>'; return; }
+  c.innerHTML = results.slice(0,15).map(function(r){
+    return '<div class="cmd-item" onclick="jumpTo(\''+r.id+'\')"><span class="cmd-item-sev" style="background:var(--'+(r.sev==='error'?'red':'amber')+')"></span><span class="cmd-item-title">'+r.title+'</span><span class="cmd-item-cat">'+r.cat+'</span></div>';
+  }).join('');
+}
+
+function jumpTo(id){ closeCmd(); var el=document.getElementById(id); if(el){el.classList.add('open');el.scrollIntoView({behavior:'smooth',block:'center'});} }
+
+document.addEventListener('keydown', function(e){
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault(); if(cmdOpen) closeCmd(); else openCmd();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='d'){e.preventDefault(); toggleScoreInfo();}
+  if(e.key==='Escape'&&cmdOpen) closeCmd();
+  if(e.key==='Escape'){var sp=document.getElementById('score-popup');if(sp)sp.classList.remove('open');}
+});
+</script>
+</body>
+</html>

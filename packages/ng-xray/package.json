@@ -1,0 +1,66 @@
+{
+  "name": "ng-xray",
+  "version": "0.1.0",
+  "description": "Diagnose and fix health issues in your Angular app",
+  "keywords": [
+    "angular",
+    "diagnostics",
+    "linter",
+    "performance",
+    "dead-code",
+    "health-check"
+  ],
+  "license": "MIT",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bin": {
+    "ng-xray": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.mts",
+      "default": "./dist/cli.mjs"
+    },
+    "./api": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "dev": "tsdown --watch",
+    "build": "rm -rf dist && NODE_ENV=production tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@angular/compiler": "^19.0.0",
+    "angular-eslint": "^19.0.0",
+    "chokidar": "^4.0.0",
+    "commander": "^14.0.0",
+    "dependency-cruiser": "^17.3.9",
+    "eslint": "^9.0.0",
+    "eslint-plugin-rxjs-x": "^1.0.0",
+    "knip": "^5.40.0",
+    "open": "^10.1.0",
+    "ora": "^8.1.0",
+    "picocolors": "^1.1.1",
+    "picomatch": "^4.0.3",
+    "ts-morph": "^27.0.2",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/picomatch": "^4.0.2",
+    "tsdown": "^0.21.2",
+    "vitest": "^3.0.0"
+  }
+}

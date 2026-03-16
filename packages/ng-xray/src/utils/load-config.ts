@@ -1,0 +1,115 @@
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import type { NgXrayConfig } from '../types.js';
+import { logger } from './logger.js';
+
+const CONFIG_FILENAMES = ['ng-xray.config.json'];
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+const normalizeArchitectureConfig = (
+  value: unknown,
+  sourceLabel: string,
+): NgXrayConfig['architecture'] | undefined => {
+  if (value === undefined) return undefined;
+  if (typeof value === 'boolean') return value;
+  if (!isRecord(value)) {
+    logger.warn(`Config from ${sourceLabel} has invalid architecture config — ignoring.`);
+    return undefined;
+  }
+
+  const normalized = {
+    ...(isStringArray(value.featurePaths) ? { featurePaths: value.featurePaths } : {}),
+    ...(isStringArray(value.sharedPaths) ? { sharedPaths: value.sharedPaths } : {}),
+  };
+
+  const hadInvalidField = (
+    ('featurePaths' in value && !isStringArray(value.featurePaths)) ||
+    ('sharedPaths' in value && !isStringArray(value.sharedPaths))
+  );
+  if (hadInvalidField) {
+    logger.warn(`Config from ${sourceLabel} has invalid architecture config — ignoring unsupported values.`);
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+};
+
+const normalizeConfig = (
+  value: unknown,
+  sourceLabel: string,
+): NgXrayConfig | null => {
+  if (!isRecord(value)) return null;
+
+  const normalized: NgXrayConfig = {};
+
+  if (isRecord(value.ignore)) {
+    normalized.ignore = {
+      ...(isStringArray(value.ignore.rules) ? { rules: value.ignore.rules } : {}),
+      ...(isStringArray(value.ignore.files) ? { files: value.ignore.files } : {}),
+    };
+  }
+
+  if (isRecord(value.thresholds) && typeof value.thresholds['component-loc'] === 'number') {
+    normalized.thresholds = { 'component-loc': value.thresholds['component-loc'] };
+  }
+
+  if (typeof value.lint === 'boolean') normalized.lint = value.lint;
+  if (typeof value.deadCode === 'boolean') normalized.deadCode = value.deadCode;
+  if (typeof value.performance === 'boolean') normalized.performance = value.performance;
+  if (typeof value.verbose === 'boolean') normalized.verbose = value.verbose;
+
+  const architecture = normalizeArchitectureConfig(value.architecture, sourceLabel);
+  if (architecture !== undefined) {
+    normalized.architecture = architecture;
+  }
+
+  return normalized;
+};
+
+export interface ConfigLoadResult {
+  config: NgXrayConfig | null;
+  configPath: string | null;
+}
+
+export const loadConfigWithPath = (directory: string): ConfigLoadResult => {
+  for (const filename of CONFIG_FILENAMES) {
+    const filePath = path.join(directory, filename);
+    if (existsSync(filePath)) {
+      try {
+        const raw = readFileSync(filePath, 'utf-8');
+        return {
+          config: normalizeConfig(JSON.parse(raw), filePath),
+          configPath: filePath,
+        };
+      } catch {
+        logger.warn(`Config file ${filePath} could not be parsed — ignoring.`);
+        return { config: null, configPath: null };
+      }
+    }
+  }
+
+  const packageJsonPath = path.join(directory, 'package.json');
+  if (existsSync(packageJsonPath)) {
+    try {
+      const raw = readFileSync(packageJsonPath, 'utf-8');
+      const pkg = JSON.parse(raw) as Record<string, unknown>;
+      if (pkg['ngXray']) {
+        return {
+          config: normalizeConfig(pkg['ngXray'], 'package.json#ngXray'),
+          configPath: 'package.json#ngXray',
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return { config: null, configPath: null };
+};
+
+export const loadConfig = (directory: string): NgXrayConfig | null =>
+  loadConfigWithPath(directory).config;

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "timestamp": "2026-03-14T11:34:19.614Z",
+      "score": 98,
+      "categories": {
+        "best-practices": {
+          "score": 25,
+          "issues": 0
+        },
+        "performance": {
+          "score": 19,
+          "issues": 1
+        },
+        "architecture": {
+          "score": 20,
+          "issues": 0
+        },
+        "dead-code": {
+          "score": 19,
+          "issues": 1
+        },
+        "security": {
+          "score": 15,
+          "issues": 0
+        }
+      },
+      "totalIssues": 2,
+      "totalErrors": 0,
+      "totalWarnings": 2,
+      "filesAffected": 1,
+      "elapsedMs": 1485.998542
+    }
+  ]
+}

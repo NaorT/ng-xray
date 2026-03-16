@@ -1,0 +1,15 @@
+{
+  "name": "ng-xray-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter ng-xray run dev",
+    "build": "pnpm --filter ng-xray run build",
+    "typecheck": "pnpm --filter ng-xray run typecheck",
+    "test": "pnpm --filter ng-xray run test",
+    "lint": "oxlint"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@10.6.0"
+}

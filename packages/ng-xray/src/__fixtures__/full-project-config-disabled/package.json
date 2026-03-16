@@ -1,0 +1,10 @@
+{
+  "name": "full-project-config-disabled-fixture",
+  "dependencies": {
+    "@angular/core": "^19.0.0",
+    "@angular/platform-browser": "^19.0.0"
+  },
+  "ngXray": {
+    "architecture": false
+  }
+}

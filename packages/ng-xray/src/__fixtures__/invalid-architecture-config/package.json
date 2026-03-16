@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@angular/core": "^19.0.0"
+  },
+  "ngXray": {
+    "architecture": {
+      "featurePaths": "features",
+      "sharedPaths": ["shared", "core"]
+    }
+  }
+}
