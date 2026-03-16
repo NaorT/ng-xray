@@ -24,7 +24,34 @@ describe('loadConfig', () => {
 
   it('reads ngXray key from package.json', () => {
     const result = loadConfig(fixtureDir('with-config'));
-    expect(result).toEqual({ ignore: { rules: ['missing-onpush'] } });
+    expect(result).toEqual({
+      ignore: { rules: ['missing-onpush'] },
+      architecture: {
+        preset: 'angular-feature-shell',
+        boundaries: [
+          {
+            from: 'src/app/features/**',
+            disallowImportFrom: ['src/app/legacy/**'],
+            severity: 'warning',
+            message: 'Features should not depend on legacy code.',
+          },
+        ],
+        publicApi: [
+          {
+            zone: 'src/app/shared/*',
+            onlyAllowImportFrom: ['index.ts'],
+            severity: 'warning',
+          },
+        ],
+        deepImports: [
+          {
+            pattern: '@company/*/internal/**',
+            severity: 'error',
+            message: 'Do not import from internal package paths.',
+          },
+        ],
+      },
+    });
   });
 
   it('normalizes invalid architecture config fields from package.json', () => {

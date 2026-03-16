@@ -3,6 +3,7 @@
 import path from 'node:path';
 import { Command } from 'commander';
 import { EXIT_CODES, VERSION } from './constants.js';
+import { shouldGenerateHtmlReport, shouldPersistHistory, type OutputMode } from './cli-output.js';
 import { discoverProject } from './detection/discover-project.js';
 import { detectWorkspace, resolveProjectDirectory } from './detection/detect-workspace.js';
 import { generateHtmlReport } from './report/html.js';
@@ -42,6 +43,14 @@ interface CliFlags {
   ignoreBaseline: boolean;
 }
 
+const getOutputMode = (flags: CliFlags): OutputMode => {
+  if (flags.score) return 'score';
+  if (flags.json) return 'json';
+  if (flags.sarif) return 'sarif';
+  if (flags.prSummary) return 'pr-summary';
+  return 'terminal';
+};
+
 const program = new Command()
   .name('ng-xray')
   .description('Diagnose Angular project health')
@@ -71,6 +80,7 @@ program
     try {
       const resolvedDir = path.resolve(directory);
       const workspace = detectWorkspace(resolvedDir);
+      const outputMode = getOutputMode(flags);
 
       if (workspace.projects.length > 1 && !flags.project) {
         const names = workspace.projects.map(p => p.name).join(', ');
@@ -109,7 +119,6 @@ program
 
       if (flags.json) {
         const result = await scan(scanDir, scanOptions, true);
-        appendHistory(resolvedDir, result);
         console.log(JSON.stringify(result, null, 2));
         if (result.scanStatus === 'partial') process.exit(EXIT_CODES.PARTIAL_SCAN);
         return;
@@ -117,7 +126,6 @@ program
 
       if (flags.sarif) {
         const result = await scan(scanDir, scanOptions, true);
-        appendHistory(resolvedDir, result);
         console.log(generateSarif(result));
         if (result.scanStatus === 'partial') process.exit(EXIT_CODES.PARTIAL_SCAN);
         return;
@@ -125,7 +133,6 @@ program
 
       if (flags.prSummary) {
         const result = await scan(scanDir, scanOptions, true);
-        appendHistory(resolvedDir, result);
         console.log(generatePrSummary(result));
         if (result.scanStatus === 'partial') process.exit(EXIT_CODES.PARTIAL_SCAN);
         return;
@@ -144,7 +151,9 @@ program
 
       const result = await scan(scanDir, scanOptions);
 
-      appendHistory(resolvedDir, result);
+      if (shouldPersistHistory(outputMode)) {
+        appendHistory(resolvedDir, result);
+      }
       const history = loadHistory(resolvedDir);
       const delta = getHistoryDelta(history);
 
@@ -174,15 +183,17 @@ program
         logger.break();
       }
 
-      const reportPath = generateHtmlReport(result, history);
-      printReportLink(reportPath);
+      if (shouldGenerateHtmlReport(outputMode)) {
+        const reportPath = generateHtmlReport(result, history);
+        printReportLink(reportPath);
 
-      if (flags.open) {
-        try {
-          const open = (await import('open')).default;
-          await open(reportPath);
-        } catch {
-          // the link is already printed
+        if (flags.open) {
+          try {
+            const open = (await import('open')).default;
+            await open(reportPath);
+          } catch {
+            // the link is already printed
+          }
         }
       }
 

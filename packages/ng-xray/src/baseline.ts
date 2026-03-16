@@ -13,7 +13,10 @@ interface BaselineData {
 }
 
 export const fingerprintDiagnostic = (d: Diagnostic): string =>
-  createHash('sha256').update(`${d.rule}::${d.filePath}::${d.message}`).digest('hex').slice(0, 16);
+  createHash('sha256')
+    .update(`${d.source}::${d.rule}::${d.filePath}::${d.line}::${d.column}`)
+    .digest('hex')
+    .slice(0, 16);
 
 export const getBaselinePath = (directory: string): string =>
   path.join(directory, BASELINE_FILENAME);

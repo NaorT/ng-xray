@@ -28,4 +28,23 @@ describe('scan', () => {
     expect(architectureRun).toBeDefined();
     expect(architectureRun?.status).toBe('ran');
   });
+
+  it('lets explicit scan options override disabled lint, dead code, and performance config', async () => {
+    const result = await scan(
+      fixtureDir('full-project-config-disabled'),
+      {
+        lint: true,
+        deadCode: true,
+        performance: true,
+      },
+      true,
+    );
+
+    expect(result.analyzerRuns.find((run) => run.id === 'lint')?.status).toBe('ran');
+    expect(result.analyzerRuns.find((run) => run.id === 'dead-code-generic')?.status).toBe('ran');
+    expect(result.analyzerRuns.find((run) => run.id === 'dead-code-angular')?.status).toBe('ran');
+    expect(result.analyzerRuns.find((run) => run.id === 'dead-class-members')?.status).toBe('ran');
+    expect(result.analyzerRuns.find((run) => run.id === 'performance')?.status).toBe('ran');
+    expect(result.analyzerRuns.find((run) => run.id === 'lazy-loading')?.status).toBe('ran');
+  });
 });

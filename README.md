@@ -280,6 +280,8 @@ npx ng-xray . --json > results.json
 npx ng-xray . --no-dead-code --json
 ```
 
+Machine-readable modes (`--score`, `--json`, `--sarif`, `--pr-summary`) are side-effect free: they do not append scan history and they do not generate the HTML report.
+
 When `scanStatus` is `"partial"` in JSON output, one or more analyzers failed. The score may not reflect full project health. Do not rely on score thresholds for CI gates when the scan is partial.
 
 ## Baseline and History
@@ -292,9 +294,11 @@ npx ng-xray baseline . --clear   # Remove baseline
 npx ng-xray history .            # View scan history
 ```
 
+History entries are appended during the default terminal scan flow. Use the machine-readable output modes when you need side-effect-free CI automation.
+
 ## HTML Report
 
-The report is always generated and its path is printed to the terminal. Use `--open` to also open it in the browser.
+The HTML report is generated during the default terminal scan flow, and its path is printed to the terminal. Use `--open` to also open it in the browser.
 
 The report is a single `.html` file with inline CSS and JS. It includes:
 

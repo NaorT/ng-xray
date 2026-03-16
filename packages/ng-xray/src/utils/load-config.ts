@@ -11,6 +11,59 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
+const isSeverity = (value: unknown): value is 'error' | 'warning' =>
+  value === 'error' || value === 'warning';
+
+const isArchitecturePreset = (value: unknown): value is 'angular-feature-shell' | 'angular-domain-driven' =>
+  value === 'angular-feature-shell' || value === 'angular-domain-driven';
+
+const normalizeBoundaryRules = (value: unknown): NonNullable<Exclude<NgXrayConfig['architecture'], boolean>>['boundaries'] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.from !== 'string' || !isStringArray(entry.disallowImportFrom)) {
+      return [];
+    }
+    return [{
+      from: entry.from,
+      disallowImportFrom: entry.disallowImportFrom,
+      ...(isSeverity(entry.severity) ? { severity: entry.severity } : {}),
+      ...(typeof entry.message === 'string' ? { message: entry.message } : {}),
+    }];
+  });
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizePublicApiRules = (value: unknown): NonNullable<Exclude<NgXrayConfig['architecture'], boolean>>['publicApi'] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.zone !== 'string') {
+      return [];
+    }
+    return [{
+      zone: entry.zone,
+      ...(isStringArray(entry.onlyAllowImportFrom) ? { onlyAllowImportFrom: entry.onlyAllowImportFrom } : {}),
+      ...(isSeverity(entry.severity) ? { severity: entry.severity } : {}),
+      ...(typeof entry.message === 'string' ? { message: entry.message } : {}),
+    }];
+  });
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeDeepImportRules = (value: unknown): NonNullable<Exclude<NgXrayConfig['architecture'], boolean>>['deepImports'] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.pattern !== 'string') {
+      return [];
+    }
+    return [{
+      pattern: entry.pattern,
+      ...(isSeverity(entry.severity) ? { severity: entry.severity } : {}),
+      ...(typeof entry.message === 'string' ? { message: entry.message } : {}),
+    }];
+  });
+  return normalized.length > 0 ? normalized : undefined;
+};
+
 const normalizeArchitectureConfig = (
   value: unknown,
   sourceLabel: string,
@@ -22,14 +75,26 @@ const normalizeArchitectureConfig = (
     return undefined;
   }
 
+  const boundaryRules = normalizeBoundaryRules(value.boundaries);
+  const publicApiRules = normalizePublicApiRules(value.publicApi);
+  const deepImportRules = normalizeDeepImportRules(value.deepImports);
+
   const normalized = {
     ...(isStringArray(value.featurePaths) ? { featurePaths: value.featurePaths } : {}),
     ...(isStringArray(value.sharedPaths) ? { sharedPaths: value.sharedPaths } : {}),
+    ...(isArchitecturePreset(value.preset) ? { preset: value.preset } : {}),
+    ...(boundaryRules ? { boundaries: boundaryRules } : {}),
+    ...(publicApiRules ? { publicApi: publicApiRules } : {}),
+    ...(deepImportRules ? { deepImports: deepImportRules } : {}),
   };
 
   const hadInvalidField = (
     ('featurePaths' in value && !isStringArray(value.featurePaths)) ||
-    ('sharedPaths' in value && !isStringArray(value.sharedPaths))
+    ('sharedPaths' in value && !isStringArray(value.sharedPaths)) ||
+    ('preset' in value && !isArchitecturePreset(value.preset)) ||
+    ('boundaries' in value && !Array.isArray(value.boundaries)) ||
+    ('publicApi' in value && !Array.isArray(value.publicApi)) ||
+    ('deepImports' in value && !Array.isArray(value.deepImports))
   );
   if (hadInvalidField) {
     logger.warn(`Config from ${sourceLabel} has invalid architecture config — ignoring unsupported values.`);

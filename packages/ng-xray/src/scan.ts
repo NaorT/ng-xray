@@ -102,6 +102,12 @@ const getArchitectureAnalyzerConfig = (
     ? config.architecture
     : undefined;
 
+const resolveBooleanOption = (
+  option: boolean | undefined,
+  configValue: boolean | undefined,
+): boolean | undefined =>
+  typeof option === 'boolean' ? option : configValue;
+
 export const scan = async (
   directory: string,
   options: ScanOptions = {},
@@ -114,12 +120,12 @@ export const scan = async (
   const architectureConfig = getArchitectureAnalyzerConfig(config);
 
   const effective = {
-    lint: options.lint === false ? false : (config?.lint ?? options.lint),
-    deadCode: options.deadCode === false ? false : (config?.deadCode ?? options.deadCode),
+    lint: resolveBooleanOption(options.lint, config?.lint),
+    deadCode: resolveBooleanOption(options.deadCode, config?.deadCode),
     architecture: typeof options.architecture === 'boolean'
       ? options.architecture
       : (typeof config?.architecture === 'boolean' ? config.architecture : undefined),
-    performance: options.performance === false ? false : (config?.performance ?? options.performance),
+    performance: resolveBooleanOption(options.performance, config?.performance),
   };
 
   if (!project.angularVersion) {

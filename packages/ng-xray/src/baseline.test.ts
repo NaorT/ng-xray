@@ -41,6 +41,18 @@ describe('fingerprintDiagnostic', () => {
     expect(h1).not.toBe(h2);
   });
 
+  it('produces different hashes for different locations in the same file', () => {
+    const h1 = fingerprintDiagnostic(makeDiag({ filePath: 'a.ts', line: 10, column: 2 }));
+    const h2 = fingerprintDiagnostic(makeDiag({ filePath: 'a.ts', line: 20, column: 4 }));
+    expect(h1).not.toBe(h2);
+  });
+
+  it('keeps the same hash when only the diagnostic message changes', () => {
+    const h1 = fingerprintDiagnostic(makeDiag({ filePath: 'a.ts', line: 10, column: 2, message: 'old wording' }));
+    const h2 = fingerprintDiagnostic(makeDiag({ filePath: 'a.ts', line: 10, column: 2, message: 'new wording' }));
+    expect(h1).toBe(h2);
+  });
+
   it('hash is 16 characters long', () => {
     const hash = fingerprintDiagnostic(makeDiag());
     expect(hash).toHaveLength(16);

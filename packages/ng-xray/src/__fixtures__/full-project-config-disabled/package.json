@@ -5,6 +5,9 @@
     "@angular/platform-browser": "^19.0.0"
   },
   "ngXray": {
-    "architecture": false
+    "lint": false,
+    "deadCode": false,
+    "architecture": false,
+    "performance": false
   }
 }
