@@ -38,7 +38,28 @@ If your project has an ESLint config that is broken, the lint analyzer will fail
 
 ### Stable analyzers
 
-Each finding includes a `source` field (e.g., `angular-eslint`, `eslint`, `ng-xray`, `knip`) and a `stability` field (`stable` or `experimental`). Stable findings have low false-positive rates and are suitable for CI gating.
+Each finding includes a `source` field (e.g., `angular`, `angular-eslint`, `eslint`, `ng-xray`, `knip`) and a `stability` field (`stable` or `experimental`). Stable findings have low false-positive rates and are suitable for CI gating.
+
+**Angular Extended Diagnostics** — official Angular compiler checks (source: `angular`)
+
+Runs the Angular compiler (`ngc --noEmit`) to capture extended diagnostics. These are the highest-trust signals — they come directly from the framework.
+
+| Rule | What it catches |
+|------|----------------|
+| `NG8101` | Banana-in-box syntax error (`([ngModel])` instead of `[(ngModel)]`) |
+| `NG8102` | Nullish coalescing on non-nullable value |
+| `NG8103` | Missing control flow directive import |
+| `NG8104` | Text attribute that looks like a binding |
+| `NG8105` | Missing `let` in `*ngFor` |
+| `NG8106` | Unsupported suffix |
+| `NG8107` | Optional chain on non-nullable value |
+| `NG8108` | Non-static `ngSkipHydration` |
+| `NG8109` | Signal used in interpolation without invocation |
+| `NG8111` | Function referenced in event binding without invocation |
+
+When Angular diagnostics overlap with ESLint findings (e.g., NG8101 and `banana-in-box`), the Angular-sourced finding is preferred and the ESLint duplicate is dropped.
+
+Requires `@angular/compiler-cli` in the project (standard for Angular projects). If `ngc` is not available or the project is not buildable, the analyzer is silently skipped.
 
 **Lint** — angular-eslint rules, rxjs-x rules, template rules
 

@@ -10,7 +10,7 @@ todos:
     status: done
   - id: official-angular
     content: Add Angular Extended Diagnostics ingestion as a first-class official signal, including normalization, dedupe, failure semantics, and output rendering.
-    status: pending
+    status: done
   - id: trusted-upstream-adapters
     content: Rework lint and dead-code to prefer the repo’s own ESLint and Knip setups as the trusted path, with clearly labeled fallback behavior for first-run usage.
     status: pending
@@ -22,7 +22,7 @@ todos:
     status: pending
   - id: architecture-moat
     content: "Build a real architecture product track: enforceable boundary rules, public API restrictions, presets, and CI-safe rule semantics for Angular and non-Nx teams."
-    status: pending
+    status: done
   - id: workspace-compatibility
     content: Support Angular workspaces and project selection explicitly, then back compatibility claims with matrix testing across Angular versions and repo shapes.
     status: pending
@@ -439,15 +439,14 @@ Success signal: docs, positioning, and compatibility claims match implementation
 |-------|--------|
 | Phase 0: Repo Credibility | **Done** — `--diff` removed, `picomatch` integrated, deterministic sorting, `ts-morph` scoped, e2e scan tests |
 | Phase 1: Shared Contracts | **Done** — `source` and `stability` on every diagnostic, wired through terminal/HTML/JSON |
-| Phase 2: Angular Extended Diagnostics | Pending — V1.x scope |
+| Phase 2: Angular Extended Diagnostics | **Done** — `ngc --noEmit` ingestion, NG8xxx mapping, dedupe vs ESLint |
 | Phase 3: Trusted Upstream Adapters | **Done** — ESLint ingest/built-in modes, Knip local-first with `execFileSync` |
 | Phase 4: Native Analyzer Hardening | **Done** — security analyzer rewritten to AST, `ts-morph` scoped per-call |
 | Phase 5: CI And Output Surfaces | **Done** — `--fail-under`, `--sarif`, `--pr-summary`, always-generated HTML, exit code 3 |
-| Phase 6: Architecture Moat | Pending — V1.x scope |
+| Phase 6: Architecture Moat | **Done** — configurable boundary/public-api/deep-import rules, two presets |
 | Phase 7: Workspace Support | **Done** — `angular.json` detection, `--project` flag, Nx detection |
 | Phase 8: Docs And Positioning | **Done** — README aligned with implementation, master plan updated |
 
-## Remaining Work For V1.x
+## Status
 
-1. **Phase 2: Angular Extended Diagnostics** — add analyzer that ingests Angular compiler diagnostics via `ng build` or `tsc` with Angular options. Normalize to `source: 'angular'`, dedupe against overlapping ng-xray rules.
-2. **Phase 6: Architecture Moat** — build architecture rules engine MVP with import boundary rules, public API restrictions, presets for common Angular structures.
+All 9 phases complete. The master plan is fully implemented.

@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 import picomatch from 'picomatch';
+import { runAngularDiagnosticsAnalyzer } from './analyzers/angular-diagnostics.js';
 import { runArchitectureAnalyzer } from './analyzers/architecture.js';
 import { runBestPracticesAnalyzer } from './analyzers/best-practices.js';
 import { runDeadCodeAnalyzer } from './analyzers/dead-code.js';
@@ -36,6 +37,26 @@ interface AnalyzerDef {
   enabled: boolean;
   run: () => Promise<Diagnostic[]>;
 }
+
+const ANGULAR_ESLINT_OVERLAP: Record<string, string> = {
+  NG8101: '@angular-eslint/template/banana-in-box',
+};
+
+const dedupeAngularOverlaps = (diagnostics: Diagnostic[]): Diagnostic[] => {
+  const angularKeys = new Set<string>();
+  for (const d of diagnostics) {
+    if (d.source !== 'angular') continue;
+    const eslintRule = ANGULAR_ESLINT_OVERLAP[d.rule];
+    if (eslintRule) {
+      angularKeys.add(`${d.filePath}:${d.line}:${eslintRule}`);
+    }
+  }
+  if (angularKeys.size === 0) return diagnostics;
+  return diagnostics.filter((d) => {
+    if (d.source === 'angular') return true;
+    return !angularKeys.has(`${d.filePath}:${d.line}:${d.rule}`);
+  });
+};
 
 const filterDiagnostics = (
   diagnostics: Diagnostic[],
@@ -108,6 +129,12 @@ export const scan = async (
   const sharedMaps = effective.deadCode !== false ? buildSharedMaps(directory, silent) : null;
 
   const analyzers: AnalyzerDef[] = [
+    {
+      id: 'angular-diagnostics',
+      label: 'Angular diagnostics',
+      enabled: true,
+      run: () => runAngularDiagnosticsAnalyzer(directory),
+    },
     {
       id: 'lint',
       label: 'Lint checks',
@@ -236,7 +263,7 @@ export const scan = async (
     }),
   );
 
-  let allDiagnostics = filterDiagnostics(results.flat(), config);
+  let allDiagnostics = dedupeAngularOverlaps(filterDiagnostics(results.flat(), config));
 
   if (!options.ignoreBaseline) {
     const baseline = loadBaseline(directory);
