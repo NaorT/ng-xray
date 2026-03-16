@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Diagnostic } from '../types.js';
 import { logger } from '../utils/logger.js';
 import { buildProjectTemplateMap, type ProjectTemplateMap } from '../utils/template-parser.js';
-import { buildProjectClassMap, type ClassInfo, type ProjectClassMap } from '../utils/inheritance-resolver.js';
+import { buildProjectClassMap, type ProjectClassMap } from '../utils/inheritance-resolver.js';
 import { walkFiles } from '../utils/walk.js';
 
 const collectAllFileContents = (directory: string): Map<string, string> => {
@@ -60,28 +60,6 @@ const isClassImportedAnywhere = (className: string, allContents: Map<string, str
   return false;
 };
 
-const entityTypeLabel = (cls: ClassInfo): string => {
-  if (cls.isComponent) return 'component';
-  if (cls.isDirective) return 'directive';
-  if (cls.isPipe) return 'pipe';
-  if (cls.isService) return 'service';
-  if (cls.isGuard) return 'guard';
-  if (cls.isInterceptor) return 'interceptor';
-  if (cls.isResolver) return 'resolver';
-  return 'class';
-};
-
-const diagnosticRule = (cls: ClassInfo): string => {
-  if (cls.isComponent) return 'unused-component';
-  if (cls.isDirective) return 'unused-directive';
-  if (cls.isPipe) return 'unused-pipe';
-  if (cls.isService) return 'unused-service';
-  if (cls.isGuard) return 'unused-guard';
-  if (cls.isInterceptor) return 'unused-interceptor';
-  if (cls.isResolver) return 'unused-resolver';
-  return 'unused-class';
-};
-
 export const runAngularDeadCodeAnalyzer = async (
   directory: string,
   prebuiltClassMap?: ProjectClassMap,
@@ -96,7 +74,7 @@ export const runAngularDeadCodeAnalyzer = async (
     const relPath = path.relative(directory, classInfo.filePath);
 
     if (classInfo.isComponent && classInfo.selector) {
-      const selectorTag = classInfo.selector.replace(/[\[\]]/g, '');
+      const selectorTag = classInfo.selector.replace(/[[\]]/g, '');
       const isUsedInTemplate = templateMap.allUsedSelectors.has(selectorTag) || templateMap.allUsedSelectors.has(classInfo.selector);
       const isUsedInRoutes = isClassReferencedInRoutes(className, allContents);
       const isEntryComponent = relPath.includes('app.component') || relPath.includes('app-shell');
@@ -119,7 +97,7 @@ export const runAngularDeadCodeAnalyzer = async (
     }
 
     if (classInfo.isDirective && classInfo.selector) {
-      const selectorTag = classInfo.selector.replace(/[\[\]]/g, '');
+      const selectorTag = classInfo.selector.replace(/[[\]]/g, '');
       const isUsedInTemplate = templateMap.allUsedSelectors.has(selectorTag) || templateMap.allUsedSelectors.has(classInfo.selector);
 
       if (!isUsedInTemplate) {

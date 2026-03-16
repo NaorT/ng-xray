@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { Diagnostic, ScanOptions, ScanResult } from './types.js';
+import type { Diagnostic, ScanOptions } from './types.js';
 import { scan } from './scan.js';
 import { logger } from './utils/logger.js';
 

@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { AnalyzerRunInfo, Diagnostic, ScanResult, SignalReadinessReport } from '../types.js';
 import {
-  CATEGORY_MAX_DEDUCTIONS,
   RULE_MAX_DEDUCTIONS,
   SEVERITY_WEIGHTS,
   VERSION,
@@ -499,7 +498,6 @@ const buildScoreHero = (result: ScanResult): string => {
   const warns = result.diagnostics.filter(d => d.severity === 'warning').length;
   const affectedFiles = new Set(result.diagnostics.map(d => d.filePath)).size;
   const topFixes = result.remediation.length;
-  const isComplete = result.scanStatus === 'complete';
 
   const bars = score.categories.map(c => {
     const actual = c.maxDeduction - c.deduction;
@@ -515,9 +513,6 @@ const buildScoreHero = (result: ScanResult): string => {
 
   const errCol = errs > 0 ? 'color:var(--red)' : 'color:var(--text-3)';
   const warnCol = warns > 0 ? 'color:var(--amber)' : 'color:var(--text-3)';
-  const statusCol = isComplete ? 'color:var(--green)' : 'color:var(--amber)';
-  const statusText = isComplete ? 'Complete' : 'Partial';
-  const trustHint = isComplete ? 'Complete scan' : 'Partial scan';
 
   return `<div class="hero-card">
     <div class="hero-inner">

@@ -21,7 +21,7 @@ import {
   printElapsed,
 } from './report/terminal.js';
 import { scan } from './scan.js';
-import { saveBaseline, clearBaseline, baselineExists } from './baseline.js';
+import { saveBaseline, clearBaseline } from './baseline.js';
 import { appendHistory, clearHistory, loadHistory, getHistoryDelta } from './history.js';
 import type { ScanOptions } from './types.js';
 import { logger } from './utils/logger.js';

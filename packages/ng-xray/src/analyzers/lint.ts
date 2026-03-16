@@ -170,14 +170,11 @@ export const runLintAnalyzer = async (directory: string): Promise<Diagnostic[]> 
   const configPath = detectEslintConfig(directory);
 
   let eslint: InstanceType<typeof import('eslint').ESLint>;
-  let mode: LintMode;
 
   if (configPath) {
-    mode = 'ingest';
     logger.debug(`Lint: using project ESLint config at ${configPath}`);
     eslint = await createIngestEslint(directory);
   } else {
-    mode = 'built-in';
     logger.debug('Lint: no ESLint config found, using built-in Angular rules');
     eslint = await createBuiltInEslint(directory);
   }

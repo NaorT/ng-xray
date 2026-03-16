@@ -15,7 +15,6 @@ import {
   parseSourceFile,
   findThisMemberAccesses,
   hasDynamicMemberAccess,
-  findMemberAccessesOnAny,
   countThisMemberAccessesInClass,
   findClassDeclarations,
   getClassName,
@@ -94,7 +93,7 @@ const isMemberUsedInTemplate = (
 const ANGULAR_EXPRESSION_CONTEXTS = [
   /\{\{([\s\S]*?)\}\}/g,
   /\[[^\]]*\]\s*=\s*["']([^"']+)["']/g,
-  /\([^\)]*\)\s*=\s*["']([^"']+)["']/g,
+  /\([^)]*\)\s*=\s*["']([^"']+)["']/g,
   /\*\w+\s*=\s*["']([^"']+)["']/g,
   /@(?:if|for|switch)\s*\(([^)]+)\)/g,
 ];

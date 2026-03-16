@@ -11,11 +11,15 @@
     "health-check"
   ],
   "license": "MIT",
-  "author": "",
+  "author": "Naor Tamir",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/NaorT/ng-xray.git"
   },
+  "bugs": {
+    "url": "https://github.com/NaorT/ng-xray/issues"
+  },
+  "homepage": "https://github.com/NaorT/ng-xray#readme",
   "bin": {
     "ng-xray": "./dist/cli.mjs"
   },
@@ -24,6 +28,9 @@
     "!dist/**/*.map"
   ],
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "exports": {
     ".": {
       "types": "./dist/cli.d.mts",

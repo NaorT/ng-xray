@@ -1,15 +1,24 @@
 {
   "name": "ng-xray-monorepo",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NaorT/ng-xray.git"
+  },
   "scripts": {
     "dev": "pnpm --filter ng-xray run dev",
     "build": "pnpm --filter ng-xray run build",
     "typecheck": "pnpm --filter ng-xray run typecheck",
     "test": "pnpm --filter ng-xray run test",
-    "lint": "oxlint"
+    "lint": "oxlint packages/ng-xray/src --ignore-pattern \"packages/ng-xray/src/__fixtures__/**\" --deny-warnings"
   },
   "devDependencies": {
+    "oxlint": "^1.56.0",
     "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "packageManager": "pnpm@10.6.0"
 }
