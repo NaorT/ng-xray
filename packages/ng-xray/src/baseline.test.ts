@@ -1,6 +1,9 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import type { Diagnostic } from './types.js';
-import { fingerprintDiagnostic, subtractBaseline } from './baseline.js';
+import { fingerprintDiagnostic, loadBaseline, subtractBaseline } from './baseline.js';
 
 const makeDiag = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   filePath: 'test.ts',
@@ -17,7 +20,7 @@ const makeDiag = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
 });
 
 const makeBaseline = (fingerprints: string[]) => ({
-  version: 1 as const,
+  version: 2 as const,
   createdAt: '2025-01-01T00:00:00.000Z',
   fingerprints,
   meta: { totalIssues: fingerprints.length, score: 100 },
@@ -51,6 +54,24 @@ describe('fingerprintDiagnostic', () => {
     const h1 = fingerprintDiagnostic(makeDiag({ filePath: 'a.ts', line: 10, column: 2, message: 'old wording' }));
     const h2 = fingerprintDiagnostic(makeDiag({ filePath: 'a.ts', line: 10, column: 2, message: 'new wording' }));
     expect(h1).toBe(h2);
+  });
+
+  it('distinguishes synthetic same-file findings using their message', () => {
+    const h1 = fingerprintDiagnostic(makeDiag({
+      rule: 'boundary-violation',
+      filePath: 'src/app/features/auth/auth.routes.ts',
+      line: 1,
+      column: 1,
+      message: 'Boundary violation: auth imports from legacy/a.ts',
+    }));
+    const h2 = fingerprintDiagnostic(makeDiag({
+      rule: 'boundary-violation',
+      filePath: 'src/app/features/auth/auth.routes.ts',
+      line: 1,
+      column: 1,
+      message: 'Boundary violation: auth imports from legacy/b.ts',
+    }));
+    expect(h1).not.toBe(h2);
   });
 
   it('hash is 16 characters long', () => {
@@ -89,5 +110,19 @@ describe('subtractBaseline', () => {
     const baseline = makeBaseline(['abc123']);
     const result = subtractBaseline([], baseline);
     expect(result).toEqual([]);
+  });
+});
+
+describe('loadBaseline', () => {
+  it('ignores unsupported baseline versions', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'ng-xray-baseline-'));
+    writeFileSync(path.join(directory, '.ng-xray-baseline.json'), JSON.stringify({
+      version: 1,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      fingerprints: ['abc123'],
+      meta: { totalIssues: 1, score: 99 },
+    }), 'utf-8');
+
+    expect(loadBaseline(directory)).toBeNull();
   });
 });

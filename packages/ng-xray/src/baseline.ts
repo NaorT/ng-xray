@@ -4,9 +4,10 @@ import path from 'node:path';
 import type { Diagnostic } from './types.js';
 
 const BASELINE_FILENAME = '.ng-xray-baseline.json';
+const BASELINE_VERSION = 2;
 
 interface BaselineData {
-  version: 1;
+  version: 2;
   createdAt: string;
   fingerprints: string[];
   meta: { totalIssues: number; score: number };
@@ -14,7 +15,9 @@ interface BaselineData {
 
 export const fingerprintDiagnostic = (d: Diagnostic): string =>
   createHash('sha256')
-    .update(`${d.source}::${d.rule}::${d.filePath}::${d.line}::${d.column}`)
+    .update(
+      `${d.source}::${d.rule}::${d.filePath}::${d.line}::${d.column}${d.line === 1 && d.column === 1 ? `::${d.message}` : ''}`,
+    )
     .digest('hex')
     .slice(0, 16);
 
@@ -27,7 +30,7 @@ export const baselineExists = (directory: string): boolean =>
 export const saveBaseline = (directory: string, diagnostics: Diagnostic[], score: number): string => {
   const baselinePath = getBaselinePath(directory);
   const data: BaselineData = {
-    version: 1,
+    version: BASELINE_VERSION,
     createdAt: new Date().toISOString(),
     fingerprints: diagnostics.map(fingerprintDiagnostic),
     meta: { totalIssues: diagnostics.length, score },
@@ -40,7 +43,8 @@ export const loadBaseline = (directory: string): BaselineData | null => {
   const baselinePath = getBaselinePath(directory);
   if (!existsSync(baselinePath)) return null;
   try {
-    return JSON.parse(readFileSync(baselinePath, 'utf-8'));
+    const baseline = JSON.parse(readFileSync(baselinePath, 'utf-8')) as Partial<BaselineData> & { version?: number };
+    return baseline.version === BASELINE_VERSION ? baseline as BaselineData : null;
   } catch {
     return null;
   }

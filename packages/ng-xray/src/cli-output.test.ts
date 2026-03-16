@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  applyOutputSideEffects,
   shouldGenerateHtmlReport,
   shouldPersistHistory,
   type OutputMode,
@@ -25,5 +26,40 @@ describe('cli output behavior', () => {
     expect(shouldGenerateHtmlReport('json')).toBe(false);
     expect(shouldGenerateHtmlReport('sarif')).toBe(false);
     expect(shouldGenerateHtmlReport('pr-summary')).toBe(false);
+  });
+
+  it('does not call history or report hooks for machine-readable modes', () => {
+    const appendHistory = vi.fn();
+    const generateHtmlReport = vi.fn();
+    const printReportLink = vi.fn();
+
+    for (const mode of machineReadableModes) {
+      applyOutputSideEffects(mode, {
+        appendHistory,
+        generateHtmlReport,
+        printReportLink,
+      });
+    }
+
+    expect(appendHistory).not.toHaveBeenCalled();
+    expect(generateHtmlReport).not.toHaveBeenCalled();
+    expect(printReportLink).not.toHaveBeenCalled();
+  });
+
+  it('runs history and report hooks for terminal mode', () => {
+    const appendHistory = vi.fn();
+    const generateHtmlReport = vi.fn(() => '/tmp/report.html');
+    const printReportLink = vi.fn();
+
+    const reportPath = applyOutputSideEffects('terminal', {
+      appendHistory,
+      generateHtmlReport,
+      printReportLink,
+    });
+
+    expect(appendHistory).toHaveBeenCalledOnce();
+    expect(generateHtmlReport).toHaveBeenCalledOnce();
+    expect(printReportLink).toHaveBeenCalledWith('/tmp/report.html');
+    expect(reportPath).toBe('/tmp/report.html');
   });
 });

@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { Command } from 'commander';
 import { EXIT_CODES, VERSION } from './constants.js';
-import { shouldGenerateHtmlReport, shouldPersistHistory, type OutputMode } from './cli-output.js';
+import { applyOutputSideEffects, type OutputMode } from './cli-output.js';
 import { discoverProject } from './detection/discover-project.js';
 import { detectWorkspace, resolveProjectDirectory } from './detection/detect-workspace.js';
 import { generateHtmlReport } from './report/html.js';
@@ -151,11 +151,17 @@ program
 
       const result = await scan(scanDir, scanOptions);
 
-      if (shouldPersistHistory(outputMode)) {
-        appendHistory(resolvedDir, result);
-      }
+      const historyBefore = loadHistory(resolvedDir);
+      const deltaBefore = getHistoryDelta(historyBefore);
+
+      const reportPath = applyOutputSideEffects(outputMode, {
+        appendHistory: () => appendHistory(resolvedDir, result),
+        generateHtmlReport: () => generateHtmlReport(result, loadHistory(resolvedDir)),
+        printReportLink,
+      });
+
       const history = loadHistory(resolvedDir);
-      const delta = getHistoryDelta(history);
+      const delta = getHistoryDelta(history) ?? deltaBefore;
 
       if (result.diagnostics.length > 0) {
         printDiagnostics(result.diagnostics, flags.verbose);
@@ -183,17 +189,12 @@ program
         logger.break();
       }
 
-      if (shouldGenerateHtmlReport(outputMode)) {
-        const reportPath = generateHtmlReport(result, history);
-        printReportLink(reportPath);
-
-        if (flags.open) {
-          try {
-            const open = (await import('open')).default;
-            await open(reportPath);
-          } catch {
-            // the link is already printed
-          }
+      if (reportPath && flags.open) {
+        try {
+          const open = (await import('open')).default;
+          await open(reportPath);
+        } catch {
+          // the link is already printed
         }
       }
 
