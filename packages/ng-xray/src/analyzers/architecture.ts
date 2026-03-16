@@ -3,6 +3,8 @@ import path from 'node:path';
 import { cruise } from 'dependency-cruiser';
 import type { ICruiseResult } from 'dependency-cruiser';
 import type { ArchitectureAnalyzerConfig, Diagnostic, Severity } from '../types.js';
+import { runArchitectureRules } from './architecture-rules.js';
+import { getPresetRules } from './architecture-presets.js';
 
 const HELP: Record<string, string> = {
   'feature-isolation': 'Move shared code to `shared/` or `core/`, or create a shared sub-module.',
@@ -123,6 +125,26 @@ export const runArchitectureAnalyzer = async (
       source: 'ng-xray',
       stability: 'stable',
     });
+  }
+
+  const presetRules = config?.preset ? getPresetRules(config.preset) : null;
+
+  const boundaries = [
+    ...(presetRules?.boundaries ?? []),
+    ...(config?.boundaries ?? []),
+  ];
+  const publicApi = [
+    ...(presetRules?.publicApi ?? []),
+    ...(config?.publicApi ?? []),
+  ];
+  const deepImports = [
+    ...(presetRules?.deepImports ?? []),
+    ...(config?.deepImports ?? []),
+  ];
+
+  if (boundaries.length > 0 || publicApi.length > 0 || deepImports.length > 0) {
+    const ruleDiagnostics = runArchitectureRules(directory, boundaries, publicApi, deepImports);
+    diagnostics.push(...ruleDiagnostics);
   }
 
   return diagnostics;

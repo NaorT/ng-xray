@@ -65,9 +65,35 @@ export interface SignalReadinessReport {
   migrationPlan: { pattern: string; count: number; effort: 'low' | 'medium' | 'high'; description: string }[];
 }
 
+export interface BoundaryRule {
+  from: string;
+  disallowImportFrom: string[];
+  severity?: Severity;
+  message?: string;
+}
+
+export interface PublicApiRule {
+  zone: string;
+  onlyAllowImportFrom?: string[];
+  severity?: Severity;
+  message?: string;
+}
+
+export interface DeepImportRule {
+  pattern: string;
+  severity?: Severity;
+  message?: string;
+}
+
+export type ArchitecturePreset = 'angular-feature-shell' | 'angular-domain-driven';
+
 export interface ArchitectureAnalyzerConfig {
   featurePaths?: string[];
   sharedPaths?: string[];
+  preset?: ArchitecturePreset;
+  boundaries?: BoundaryRule[];
+  publicApi?: PublicApiRule[];
+  deepImports?: DeepImportRule[];
 }
 
 export interface AnalyzerRunInfo {

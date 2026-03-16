@@ -71,13 +71,18 @@ Each finding includes a `source` field (e.g., `angular-eslint`, `eslint`, `ng-xr
 | `eager-route-component` | Route definitions using `component:` instead of `loadComponent` |
 | `eager-route-children` | Inlined `children:` arrays instead of `loadChildren` |
 
-**Architecture** — feature isolation, core/shared boundary, circular dependencies
+**Architecture** — feature isolation, core/shared boundary, circular dependencies, configurable boundary rules
 
 | Rule | What it catches |
 |------|----------------|
 | `feature-isolation` | Feature module importing from another feature module |
 | `core-shared-boundary` | `shared/` or `core/` importing from `features/` |
 | `circular-dependency` | Circular import chains between files |
+| `boundary-violation` | Import crossing a configured module boundary |
+| `public-api-violation` | Import bypassing a zone's barrel file (index.ts) |
+| `deep-import` | Import reaching into a package's internal paths |
+
+The last three rules are powered by the **architecture rules engine** — see [Architecture Rules](#architecture-rules) below.
 
 **Best Practices** — prefer inject(), no async lifecycle hooks
 
@@ -185,7 +190,6 @@ Available options:
 {
   "lint": true,
   "deadCode": true,
-  "architecture": true,
   "performance": true,
   "ignore": {
     "rules": ["missing-onpush"],
@@ -196,7 +200,11 @@ Available options:
   },
   "architecture": {
     "featurePaths": ["features"],
-    "sharedPaths": ["shared", "core"]
+    "sharedPaths": ["shared", "core"],
+    "preset": "angular-feature-shell",
+    "boundaries": [],
+    "publicApi": [],
+    "deepImports": []
   }
 }
 ```
@@ -277,6 +285,71 @@ The report is a single `.html` file with inline CSS and JS. It includes:
 - Searchable findings with before/after code examples
 
 The report uses system fonts and has no external dependencies. It works fully offline.
+
+## Architecture Rules
+
+ng-xray includes a configurable architecture rules engine that enforces module boundaries, public API discipline, and deep-import constraints — without requiring Nx.
+
+### Presets
+
+Use a preset to get started quickly. Presets provide boundary, public API, and deep-import rules for common Angular structures.
+
+```json
+{
+  "architecture": {
+    "preset": "angular-feature-shell"
+  }
+}
+```
+
+Available presets:
+
+| Preset | Structure | What it enforces |
+|--------|-----------|-----------------|
+| `angular-feature-shell` | `features/`, `shared/`, `core/` | Feature isolation, shared/core boundaries, barrel imports, no Angular/NgRx deep imports |
+| `angular-domain-driven` | `domains/`, `libs/`, `infrastructure/` | Domain isolation, infrastructure inversion, barrel imports |
+
+### Custom Rules
+
+Add custom rules alongside or instead of a preset:
+
+```json
+{
+  "architecture": {
+    "preset": "angular-feature-shell",
+    "boundaries": [
+      {
+        "from": "src/app/features/**",
+        "disallowImportFrom": ["src/app/legacy/**"],
+        "severity": "warning",
+        "message": "Features should not depend on legacy code."
+      }
+    ],
+    "publicApi": [
+      {
+        "zone": "src/app/shared/*",
+        "onlyAllowImportFrom": ["index.ts"],
+        "severity": "warning"
+      }
+    ],
+    "deepImports": [
+      {
+        "pattern": "@company/*/internal/**",
+        "severity": "error",
+        "message": "Do not import from internal package paths."
+      }
+    ]
+  }
+}
+```
+
+**Boundary rules** prevent imports from one zone to another. Self-imports within the same zone (e.g., `features/auth` importing from `features/auth`) are automatically allowed.
+
+**Public API rules** require that imports into a zone go through a barrel file (e.g., `index.ts`). Direct imports into internal files are flagged.
+
+**Deep import rules** catch imports that reach into third-party package internals (e.g., `@angular/core/src/...`).
+
+Custom rules are merged with preset rules — presets run first, then your custom rules add on top.
 
 ## Workspace Support
 
