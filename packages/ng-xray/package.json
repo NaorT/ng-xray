@@ -55,7 +55,7 @@
     "@angular-eslint/template-parser": "^19.0.0",
     "@angular/compiler": "^19.0.0",
     "angular-eslint": "^19.0.0",
-    "chokidar": "^4.0.0",
+    "chokidar": "^5.0.0",
     "commander": "^14.0.0",
     "eslint": "^9.0.0",
     "eslint-plugin-rxjs-x": "^1.0.0",
