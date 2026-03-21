@@ -57,15 +57,15 @@
     "angular-eslint": "^19.0.0",
     "chokidar": "^4.0.0",
     "commander": "^14.0.0",
-    "eslint": "^9.0.0",
-    "eslint-plugin-rxjs-x": "^1.0.0",
+    "eslint": "^10.1.0",
+    "eslint-plugin-rxjs-x": "^1.0.1",
     "open": "^10.1.0",
     "ora": "^8.1.0",
     "picocolors": "^1.1.1",
     "picomatch": "^4.0.3",
     "ts-morph": "^27.0.2",
     "typescript": "^5.7.0",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.57.1"
   },
   "optionalDependencies": {
     "dependency-cruiser": "^17.3.9"
