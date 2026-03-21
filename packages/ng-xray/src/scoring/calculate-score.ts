@@ -6,14 +6,8 @@ import {
   RULE_MAX_DEDUCTIONS,
   SEVERITY_WEIGHTS,
   getScoreLabel,
-} from '../constants.js';
-import type {
-  Category,
-  CategoryScore,
-  Diagnostic,
-  RemediationItem,
-  ScoreResult,
-} from '../types.js';
+} from "../constants.js";
+import type { Category, CategoryScore, Diagnostic, RemediationItem, ScoreResult } from "../types.js";
 
 export interface ScoreOptions {
   fileCount?: number;
@@ -43,9 +37,7 @@ const calculateRuleDeduction = (diagnostics: Diagnostic[]): number => {
   let raw = 0;
   for (const diag of diagnostics) {
     const baseWeight = diag.weight ?? SEVERITY_WEIGHTS[diag.severity];
-    const multiplier = diag.stability === 'experimental'
-      ? EXPERIMENTAL_WEIGHT_MULTIPLIER
-      : 1;
+    const multiplier = diag.stability === "experimental" ? EXPERIMENTAL_WEIGHT_MULTIPLIER : 1;
     raw += baseWeight * multiplier;
   }
   const ruleCap = RULE_MAX_DEDUCTIONS[diagnostics[0]?.rule];
@@ -71,7 +63,7 @@ const densityMultiplier = (issueCount: number, fileCount: number): number => {
 
 export const calculateScore = (diagnostics: Diagnostic[], options?: ScoreOptions): ScoreResult => {
   const grouped = groupByCategory(diagnostics);
-  const allCategories: Category[] = ['best-practices', 'performance', 'architecture', 'dead-code', 'security'];
+  const allCategories: Category[] = ["best-practices", "performance", "architecture", "dead-code", "security"];
   const fileCount = options?.fileCount;
 
   const categories: CategoryScore[] = allCategories.map((category) => {
@@ -80,10 +72,7 @@ export const calculateScore = (diagnostics: Diagnostic[], options?: ScoreOptions
     let deduction = calculateCategoryDeduction(categoryDiags, maxDeduction);
 
     if (fileCount != null && fileCount > 0) {
-      deduction = Math.min(
-        Math.round(deduction * densityMultiplier(categoryDiags.length, fileCount)),
-        maxDeduction,
-      );
+      deduction = Math.min(Math.round(deduction * densityMultiplier(categoryDiags.length, fileCount)), maxDeduction);
     }
 
     return {
@@ -106,10 +95,7 @@ export const calculateScore = (diagnostics: Diagnostic[], options?: ScoreOptions
   };
 };
 
-export const generateRemediation = (
-  diagnostics: Diagnostic[],
-  options?: ScoreOptions,
-): RemediationItem[] => {
+export const generateRemediation = (diagnostics: Diagnostic[], options?: ScoreOptions): RemediationItem[] => {
   const byCategory = groupByCategory(diagnostics);
   const items: RemediationItem[] = [];
   const fileCount = options?.fileCount;
@@ -122,10 +108,7 @@ export const generateRemediation = (
     const scoredRuleDeductions = new Map<string, number>();
     for (const [rule, diags] of ruleGroups) {
       ruleDeductions.set(rule, calculateRuleDeduction(diags));
-      scoredRuleDeductions.set(
-        rule,
-        calculateRuleDeduction(diags.filter((diag) => diag.includedInScore !== false)),
-      );
+      scoredRuleDeductions.set(rule, calculateRuleDeduction(diags.filter((diag) => diag.includedInScore !== false)));
     }
 
     const totalCategoryDeduction = Math.min(
@@ -140,25 +123,23 @@ export const generateRemediation = (
       const otherDeduction = [...scoredRuleDeductions.entries()]
         .filter(([r]) => r !== rule)
         .reduce((sum, [, d]) => sum + d, 0);
-      const marginalImpact = Math.min(ruleDeduction, Math.max(0, totalCategoryDeduction - Math.min(otherDeduction, maxDeduction)));
+      const marginalImpact = Math.min(
+        ruleDeduction,
+        Math.max(0, totalCategoryDeduction - Math.min(otherDeduction, maxDeduction)),
+      );
 
       if (marginalImpact === 0 && ruleDeduction === 0) continue;
 
-      let estimatedImpact = scoredDiags.length > 0
-        ? Math.max(Math.min(scoredRuleDeduction, marginalImpact), 1)
-        : 0;
+      let estimatedImpact = scoredDiags.length > 0 ? Math.max(Math.min(scoredRuleDeduction, marginalImpact), 1) : 0;
       if (estimatedImpact > 0 && fileCount != null && fileCount > 0) {
-        estimatedImpact = Math.max(
-          estimatedImpact * densityMultiplier(scoredDiags.length, fileCount),
-          1,
-        );
+        estimatedImpact = Math.max(estimatedImpact * densityMultiplier(scoredDiags.length, fileCount), 1);
       }
       const uniqueFiles = new Set(diags.map((d) => d.filePath));
       const advisoryImpact = ruleDeduction;
       const priorityImpact = scoredDiags.length > 0 ? estimatedImpact : advisoryImpact;
 
       items.push({
-        priority: priorityImpact >= 6 ? 'high' : priorityImpact >= 3 ? 'medium' : 'low',
+        priority: priorityImpact >= 6 ? "high" : priorityImpact >= 3 ? "medium" : "low",
         rule,
         description: diags[0].message,
         estimatedScoreImpact: estimatedImpact,
@@ -168,9 +149,10 @@ export const generateRemediation = (
     }
   }
 
-  return items.sort((a, b) =>
-    Number(b.includedInScore) - Number(a.includedInScore)
-    || b.estimatedScoreImpact - a.estimatedScoreImpact
-    || b.affectedFileCount - a.affectedFileCount,
+  return items.sort(
+    (a, b) =>
+      Number(b.includedInScore) - Number(a.includedInScore) ||
+      b.estimatedScoreImpact - a.estimatedScoreImpact ||
+      b.affectedFileCount - a.affectedFileCount,
   );
 };

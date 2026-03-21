@@ -1,17 +1,21 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import ts from 'typescript';
-import type { Diagnostic } from '../types.js';
-import type { ProjectClassMap } from '../utils/inheritance-resolver.js';
-import { parseSourceFile, findClassDeclarations, getClassName } from '../utils/ts-ast-helpers.js';
+import path from "node:path";
+import ts from "typescript";
+import type { Diagnostic } from "../types.js";
+import { logger } from "../utils/logger.js";
+import type { ProjectClassMap } from "../utils/inheritance-resolver.js";
+import { parseSourceFile, findClassDeclarations, getClassName } from "../utils/ts-ast-helpers.js";
 
-const extractInjections = (classNode: ts.ClassDeclaration, sourceFile: ts.SourceFile, knownServices: Set<string>): string[] => {
+const extractInjections = (
+  classNode: ts.ClassDeclaration,
+  sourceFile: ts.SourceFile,
+  knownServices: Set<string>,
+): string[] => {
   const injections: string[] = [];
 
   for (const member of classNode.members) {
     if (ts.isPropertyDeclaration(member) && member.initializer && ts.isCallExpression(member.initializer)) {
       const callExpr = member.initializer;
-      if (ts.isIdentifier(callExpr.expression) && callExpr.expression.text === 'inject') {
+      if (ts.isIdentifier(callExpr.expression) && callExpr.expression.text === "inject") {
         const arg = callExpr.arguments[0];
         if (arg && ts.isIdentifier(arg) && knownServices.has(arg.text)) {
           injections.push(arg.text);
@@ -69,14 +73,16 @@ const detectCycles = (graph: Map<string, string[]>): string[][] => {
   return cycles;
 };
 
-const hasForwardRef = (content: string): { line: number; name: string }[] => {
+const hasForwardRef = (sourceFile: ts.SourceFile): { line: number; name: string }[] => {
   const results: { line: number; name: string }[] = [];
-  const lines = content.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('forwardRef')) {
-      results.push({ line: i + 1, name: 'forwardRef' });
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "forwardRef") {
+      const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+      results.push({ line: line + 1, name: "forwardRef" });
     }
-  }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
   return results;
 };
 
@@ -111,48 +117,51 @@ export const runCircularInjectionAnalyzer = async (
         injectionGraph.set(className, injections);
       }
 
-      const content = readFileSync(classInfo.filePath, 'utf-8');
-      const forwardRefs = hasForwardRef(content);
+      const forwardRefs = hasForwardRef(sourceFile);
       for (const ref of forwardRefs) {
         diagnostics.push({
           filePath: path.relative(directory, classInfo.filePath),
-          rule: 'forward-ref-usage',
-          category: 'architecture',
-          severity: 'warning',
+          rule: "forward-ref-usage",
+          category: "architecture",
+          severity: "warning",
           message: `${className} uses forwardRef(), which typically indicates a circular dependency.`,
-          help: 'Refactor to break the circular dependency. Consider introducing an intermediary service or using an event-based pattern.',
+          help: "Refactor to break the circular dependency. Consider introducing an intermediary service or using an event-based pattern.",
           line: ref.line,
           column: 1,
-          source: 'ng-xray',
-          stability: 'experimental',
+          source: "ng-xray",
+          stability: "experimental",
         });
       }
-    } catch { /* read errors */ }
+    } catch (error) {
+      logger.error(
+        `Circular injection: failed to read ${classInfo.filePath} — ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   const cycles = detectCycles(injectionGraph);
   const reportedCycles = new Set<string>();
 
   for (const cycle of cycles) {
-    const key = [...cycle].sort().join('::');
+    const key = [...cycle].sort().join("::");
     if (reportedCycles.has(key)) continue;
     reportedCycles.add(key);
 
-    const chainStr = cycle.join(' -> ');
+    const chainStr = cycle.join(" -> ");
     const firstService = prebuiltClassMap.classes.get(cycle[0]);
     if (!firstService) continue;
 
     diagnostics.push({
       filePath: path.relative(directory, firstService.filePath),
-      rule: 'circular-service-injection',
-      category: 'architecture',
-      severity: 'error',
+      rule: "circular-service-injection",
+      category: "architecture",
+      severity: "error",
       message: `Circular service injection detected: ${chainStr}`,
-      help: 'Break the cycle by extracting shared logic into a new service, using an event bus, or restructuring dependencies.',
+      help: "Break the cycle by extracting shared logic into a new service, using an event bus, or restructuring dependencies.",
       line: 1,
       column: 1,
-      source: 'ng-xray',
-      stability: 'experimental',
+      source: "ng-xray",
+      stability: "experimental",
     });
   }
 

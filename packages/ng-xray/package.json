@@ -25,7 +25,8 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.map"
+    "!dist/**/*.map",
+    "README.md"
   ],
   "type": "module",
   "engines": {
@@ -33,29 +34,31 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/cli.d.mts",
-      "default": "./dist/cli.mjs"
-    },
-    "./api": {
       "types": "./dist/index.d.mts",
       "default": "./dist/index.mjs"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.mts",
+      "default": "./dist/cli.mjs"
     }
   },
   "scripts": {
     "dev": "tsdown --watch",
     "build": "rm -rf dist && NODE_ENV=production tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@angular-eslint/eslint-plugin": "^19.0.0",
+    "@angular-eslint/eslint-plugin-template": "^19.0.0",
+    "@angular-eslint/template-parser": "^19.0.0",
     "@angular/compiler": "^19.0.0",
     "angular-eslint": "^19.0.0",
     "chokidar": "^4.0.0",
     "commander": "^14.0.0",
-    "dependency-cruiser": "^17.3.9",
     "eslint": "^9.0.0",
     "eslint-plugin-rxjs-x": "^1.0.0",
-    "knip": "^5.40.0",
     "open": "^10.1.0",
     "ora": "^8.1.0",
     "picocolors": "^1.1.1",
@@ -64,9 +67,13 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.0.0"
   },
+  "optionalDependencies": {
+    "dependency-cruiser": "^17.3.9"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/picomatch": "^4.0.2",
+    "@vitest/coverage-v8": "^3.2.4",
     "tsdown": "^0.21.2",
     "vitest": "^3.0.0"
   }

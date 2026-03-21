@@ -1,5 +1,6 @@
 {
   "name": "partial-scan-eslint-config-fixture",
+  "type": "module",
   "dependencies": {
     "@angular/core": "^19.0.0",
     "@angular/platform-browser": "^19.0.0"

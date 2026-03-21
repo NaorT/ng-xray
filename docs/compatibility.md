@@ -13,7 +13,9 @@ These cases run on `push` and `pull_request`:
 
 ## Extended Matrix
 
-These cases run on the scheduled compatibility workflow and on manual dispatch with `profile=extended`:
+> **Note:** The extended matrix cases are planned but not yet automated in CI. They have been validated manually. A scheduled CI workflow is planned for a future release.
+
+These cases will run on the scheduled compatibility workflow and on manual dispatch with `profile=extended`:
 
 | Case | Angular | Shape | Notes |
 |------|---------|-------|-------|

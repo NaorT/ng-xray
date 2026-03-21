@@ -1,4 +1,4 @@
-import type { Diagnostic } from '../types.js';
+import type { Diagnostic } from "../types.js";
 
 export interface HeatmapNode {
   name: string;
@@ -10,24 +10,24 @@ export interface HeatmapNode {
 }
 
 export const buildHeatmapData = (diagnostics: Diagnostic[]): HeatmapNode => {
-  const root: HeatmapNode = { name: 'src', path: '', issueCount: 0, errorCount: 0, warningCount: 0, children: [] };
+  const root: HeatmapNode = { name: "src", path: "", issueCount: 0, errorCount: 0, warningCount: 0, children: [] };
 
   const fileGroups = new Map<string, Diagnostic[]>();
   for (const d of diagnostics) {
-    if (!d.filePath || d.filePath === 'project-wide') continue;
+    if (!d.filePath || d.filePath === "project-wide") continue;
     const existing = fileGroups.get(d.filePath) ?? [];
     existing.push(d);
     fileGroups.set(d.filePath, existing);
   }
 
   for (const [filePath, diags] of fileGroups) {
-    const parts = filePath.replace(/\\/g, '/').split('/');
+    const parts = filePath.replace(/\\/g, "/").split("/");
     let current = root;
 
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       const isFile = i === parts.length - 1;
-      const partPath = parts.slice(0, i + 1).join('/');
+      const partPath = parts.slice(0, i + 1).join("/");
 
       if (!current.children) current.children = [];
       let child = current.children.find((c) => c.name === part);
@@ -40,8 +40,8 @@ export const buildHeatmapData = (diagnostics: Diagnostic[]): HeatmapNode => {
 
       if (isFile) {
         child.issueCount = diags.length;
-        child.errorCount = diags.filter((d) => d.severity === 'error').length;
-        child.warningCount = diags.filter((d) => d.severity === 'warning').length;
+        child.errorCount = diags.filter((d) => d.severity === "error").length;
+        child.warningCount = diags.filter((d) => d.severity === "warning").length;
       }
 
       current = child;
@@ -67,13 +67,16 @@ export const buildHeatmapData = (diagnostics: Diagnostic[]): HeatmapNode => {
   return prune(root);
 };
 
-export const getTopHotspots = (diagnostics: Diagnostic[], limit = 10): { filePath: string; count: number; errors: number; warnings: number }[] => {
+export const getTopHotspots = (
+  diagnostics: Diagnostic[],
+  limit = 10,
+): { filePath: string; count: number; errors: number; warnings: number }[] => {
   const fileCounts = new Map<string, { count: number; errors: number; warnings: number }>();
   for (const d of diagnostics) {
-    if (!d.filePath || d.filePath === 'project-wide') continue;
+    if (!d.filePath || d.filePath === "project-wide") continue;
     const existing = fileCounts.get(d.filePath) ?? { count: 0, errors: 0, warnings: 0 };
     existing.count++;
-    if (d.severity === 'error') existing.errors++;
+    if (d.severity === "error") existing.errors++;
     else existing.warnings++;
     fileCounts.set(d.filePath, existing);
   }

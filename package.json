@@ -11,9 +11,12 @@
     "build": "pnpm --filter ng-xray run build",
     "typecheck": "pnpm --filter ng-xray run typecheck",
     "test": "pnpm --filter ng-xray run test",
-    "lint": "oxlint packages/ng-xray/src --ignore-pattern \"packages/ng-xray/src/__fixtures__/**\" --deny-warnings"
+    "lint": "oxlint packages/ng-xray/src --ignore-pattern \"packages/ng-xray/src/__fixtures__/**\" --deny-warnings",
+    "format": "biome format --write .",
+    "format:check": "biome format ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
     "oxlint": "^1.56.0",
     "typescript": "^5.7.0"
   },

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "linter": {
+    "enabled": false
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/dist/**",
+      "!**/node_modules/**",
+      "!**/coverage/**",
+      "!**/__fixtures__/**",
+      "!.vscode/**",
+      "!pnpm-lock.yaml"
+    ]
+  }
+}

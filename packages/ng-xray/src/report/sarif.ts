@@ -1,8 +1,7 @@
-import type { Diagnostic, ScanResult } from '../types.js';
-import { VERSION } from '../constants.js';
+import type { Diagnostic, ScanResult } from "../types.js";
+import { VERSION } from "../constants.js";
 
-const SARIF_SCHEMA =
-  'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json';
+const SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json";
 
 function isUrl(text: string): boolean {
   return /^https?:\/\//i.test(text);
@@ -17,7 +16,7 @@ function buildRules(diagnostics: Diagnostic[]): SarifRule[] {
     const rule: SarifRule = {
       id,
       shortDescription: { text: d.message },
-      defaultConfiguration: { level: d.severity === 'error' ? 'error' : 'warning' },
+      defaultConfiguration: { level: d.severity === "error" ? "error" : "warning" },
       properties: { category: d.category },
     };
     if (isUrl(d.help)) {
@@ -49,7 +48,7 @@ function buildResults(diagnostics: Diagnostic[], ruleIdToIndex: Map<string, numb
     return {
       ruleId: d.rule,
       ruleIndex: ruleIdToIndex.get(d.rule) ?? -1,
-      level: (d.severity === 'error' ? 'error' : 'warning') as 'error' | 'warning',
+      level: (d.severity === "error" ? "error" : "warning") as "error" | "warning",
       message: { text: d.message },
       locations: [{ physicalLocation }],
       properties: {
@@ -67,7 +66,7 @@ function buildResults(diagnostics: Diagnostic[], ruleIdToIndex: Map<string, numb
 function buildNotifications(failedAnalyzers: string[]): SarifNotification[] {
   return failedAnalyzers.map((analyzer) => ({
     message: { text: `Analyzer "${analyzer}" failed during scan` },
-    level: 'error' as const,
+    level: "error" as const,
   }));
 }
 
@@ -76,14 +75,14 @@ interface SarifRule {
   shortDescription: { text: string };
   help?: { text: string };
   helpUri?: string;
-  defaultConfiguration: { level: 'error' | 'warning' };
+  defaultConfiguration: { level: "error" | "warning" };
   properties: { category: string };
 }
 
 interface SarifResult {
   ruleId: string;
   ruleIndex: number;
-  level: 'error' | 'warning';
+  level: "error" | "warning";
   message: { text: string };
   locations: { physicalLocation: SarifPhysicalLocation }[];
   properties: Record<string, unknown>;
@@ -91,7 +90,7 @@ interface SarifResult {
 
 interface SarifNotification {
   message: { text: string };
-  level: 'error';
+  level: "error";
 }
 
 export function generateSarif(result: ScanResult): string {
@@ -113,23 +112,23 @@ export function generateSarif(result: ScanResult): string {
   const run: Record<string, unknown> = {
     tool: {
       driver: {
-        name: 'ng-xray',
+        name: "ng-xray",
         version: VERSION,
-        informationUri: 'https://github.com/nicktamir/ng-xray',
+        informationUri: "https://github.com/NaorT/ng-xray",
         rules: sarifRules,
       },
     },
     results: buildResults(result.diagnostics, ruleIdToIndex),
     invocations: [
       {
-        executionSuccessful: result.scanStatus === 'complete',
+        executionSuccessful: result.scanStatus === "complete",
         toolExecutionNotifications: buildNotifications(result.failedAnalyzers),
       },
     ],
     properties: {
       scanStatus: result.scanStatus,
       failedAnalyzers: result.failedAnalyzers,
-      profile: result.profile ?? 'core',
+      profile: result.profile ?? "core",
       scoredDiagnosticsCount: result.scoredDiagnosticsCount ?? result.diagnostics.length,
       advisoryDiagnosticsCount: result.advisoryDiagnosticsCount ?? 0,
       excludedDiagnosticsCount: result.excludedDiagnosticsCount ?? 0,
@@ -138,7 +137,7 @@ export function generateSarif(result: ScanResult): string {
 
   const sarif = {
     $schema: SARIF_SCHEMA,
-    version: '2.1.0',
+    version: "2.1.0",
     runs: [run],
   };
 

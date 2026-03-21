@@ -25,13 +25,25 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Secret scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Security audit
+        run: pnpm audit --audit-level=high
+
       - run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
 
       - run: pnpm build
 
       - run: pnpm typecheck
 
-      - run: pnpm test
+      - name: Test with coverage
+        run: pnpm --filter ng-xray run test:coverage
 
       - name: Smoke test — packaged CLI behavior
         run: bash ./scripts/ci/smoke-packaged-cli.sh

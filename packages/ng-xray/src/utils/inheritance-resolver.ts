@@ -1,13 +1,13 @@
-import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
-import { Project, Node, SyntaxKind, Scope } from 'ts-morph';
-import type { PropertyDeclaration as MorphPropertyDeclaration, Decorator as MorphDecorator } from 'ts-morph';
-import { walkFiles } from './walk.js';
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { Project, Node, SyntaxKind, Scope } from "ts-morph";
+import type { PropertyDeclaration as MorphPropertyDeclaration, Decorator as MorphDecorator } from "ts-morph";
+import { walkFiles } from "./walk.js";
 
 export interface ClassMember {
   name: string;
-  kind: 'property' | 'method' | 'getter' | 'setter';
-  visibility: 'public' | 'protected' | 'private';
+  kind: "property" | "method" | "getter" | "setter";
+  visibility: "public" | "protected" | "private";
   line: number;
   isStatic: boolean;
   isOverride: boolean;
@@ -42,14 +42,13 @@ export interface ProjectClassMap {
   inheritanceChains: Map<string, InheritanceChain>;
 }
 
-const scopeToVisibility = (scope: Scope | undefined): 'public' | 'protected' | 'private' => {
-  if (scope === Scope.Private) return 'private';
-  if (scope === Scope.Protected) return 'protected';
-  return 'public';
+const scopeToVisibility = (scope: Scope | undefined): "public" | "protected" | "private" => {
+  if (scope === Scope.Private) return "private";
+  if (scope === Scope.Protected) return "protected";
+  return "public";
 };
 
-const decoratorNames = (decorators: MorphDecorator[]): string[] =>
-  decorators.map(d => d.getName()).filter(Boolean);
+const decoratorNames = (decorators: MorphDecorator[]): string[] => decorators.map((d) => d.getName()).filter(Boolean);
 
 const getInitializerCallName = (prop: MorphPropertyDeclaration): string | null => {
   const initializer = prop.getInitializer();
@@ -76,7 +75,7 @@ const parseClassesFromFile = (filePath: string, content: string, morphProject: P
       if (args.length === 0) continue;
       const firstArg = args[0];
       if (!Node.isObjectLiteralExpression(firstArg)) continue;
-      const selectorProp = firstArg.getProperty('selector');
+      const selectorProp = firstArg.getProperty("selector");
       if (!selectorProp || !Node.isPropertyAssignment(selectorProp)) continue;
       const init = selectorProp.getInitializer();
       if (init && Node.isStringLiteral(init)) {
@@ -94,13 +93,14 @@ const parseClassesFromFile = (filePath: string, content: string, morphProject: P
 
     const members: ClassMember[] = [];
     for (const member of classDecl.getMembers()) {
-      if (member.getKind() === SyntaxKind.Constructor || member.getKind() === SyntaxKind.ClassStaticBlockDeclaration) continue;
+      if (member.getKind() === SyntaxKind.Constructor || member.getKind() === SyntaxKind.ClassStaticBlockDeclaration)
+        continue;
 
       if (Node.isPropertyDeclaration(member)) {
         if (!Node.isIdentifier(member.getNameNode())) continue;
         members.push({
           name: member.getName(),
-          kind: 'property',
+          kind: "property",
           visibility: scopeToVisibility(member.getScope()),
           line: member.getStartLineNumber(),
           isStatic: member.isStatic(),
@@ -115,7 +115,7 @@ const parseClassesFromFile = (filePath: string, content: string, morphProject: P
         if (!Node.isIdentifier(member.getNameNode())) continue;
         members.push({
           name: member.getName(),
-          kind: 'method',
+          kind: "method",
           visibility: scopeToVisibility(member.getScope()),
           line: member.getStartLineNumber(),
           isStatic: member.isStatic(),
@@ -131,7 +131,7 @@ const parseClassesFromFile = (filePath: string, content: string, morphProject: P
         if (!Node.isIdentifier(getter.getNameNode())) continue;
         members.push({
           name: getter.getName(),
-          kind: 'getter',
+          kind: "getter",
           visibility: scopeToVisibility(getter.getScope()),
           line: getter.getStartLineNumber(),
           isStatic: getter.isStatic(),
@@ -147,7 +147,7 @@ const parseClassesFromFile = (filePath: string, content: string, morphProject: P
         if (!Node.isIdentifier(setter.getNameNode())) continue;
         members.push({
           name: setter.getName(),
-          kind: 'setter',
+          kind: "setter",
           visibility: scopeToVisibility(setter.getScope()),
           line: setter.getStartLineNumber(),
           isStatic: setter.isStatic(),
@@ -165,13 +165,13 @@ const parseClassesFromFile = (filePath: string, content: string, morphProject: P
       members,
       decorators: classDecorators,
       selector,
-      isComponent: classDecorators.includes('Component'),
-      isDirective: classDecorators.includes('Directive'),
-      isPipe: classDecorators.includes('Pipe'),
-      isService: classDecorators.includes('Injectable'),
-      isGuard: filePath.includes('.guard.'),
-      isInterceptor: filePath.includes('.interceptor.'),
-      isResolver: filePath.includes('.resolver.'),
+      isComponent: classDecorators.includes("Component"),
+      isDirective: classDecorators.includes("Directive"),
+      isPipe: classDecorators.includes("Pipe"),
+      isService: classDecorators.includes("Injectable"),
+      isGuard: filePath.includes(".guard."),
+      isInterceptor: filePath.includes(".interceptor."),
+      isResolver: filePath.includes(".resolver."),
     });
   }
 
@@ -189,10 +189,7 @@ const findAllSubclasses = (className: string, classMap: Map<string, ClassInfo>):
   return result;
 };
 
-const buildInheritanceChain = (
-  className: string,
-  classMap: Map<string, ClassInfo>,
-): InheritanceChain | null => {
+const buildInheritanceChain = (className: string, classMap: Map<string, ClassInfo>): InheritanceChain | null => {
   const classInfo = classMap.get(className);
   if (!classInfo) return null;
 
@@ -224,15 +221,15 @@ const buildInheritanceChain = (
 };
 
 export const buildProjectClassMap = (directory: string): ProjectClassMap => {
-  const srcDir = existsSync(path.join(directory, 'src')) ? path.join(directory, 'src') : directory;
-  const files = walkFiles(srcDir, ['.ts']);
+  const srcDir = existsSync(path.join(directory, "src")) ? path.join(directory, "src") : directory;
+  const files = walkFiles(srcDir, [".ts"]);
 
   const morphProject = new Project({ useInMemoryFileSystem: true });
   const classes = new Map<string, ClassInfo>();
 
   for (const filePath of files) {
     try {
-      const content = readFileSync(filePath, 'utf-8');
+      const content = readFileSync(filePath, "utf-8");
       const parsed = parseClassesFromFile(filePath, content, morphProject);
       for (const cls of parsed) {
         classes.set(cls.name, cls);

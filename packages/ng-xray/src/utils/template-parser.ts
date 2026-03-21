@@ -1,5 +1,6 @@
-import { readFileSync, existsSync } from 'node:fs';
-import path from 'node:path';
+import { readFileSync, existsSync } from "node:fs";
+import path from "node:path";
+import { logger } from "./logger.js";
 import {
   parseTemplate as angularParseTemplate,
   TmplAstElement,
@@ -19,8 +20,8 @@ import {
   ImplicitReceiver,
   type TmplAstNode,
   type AST,
-} from '@angular/compiler';
-import { walkFiles } from './walk.js';
+} from "@angular/compiler";
+import { walkFiles } from "./walk.js";
 
 export interface TemplateUsage {
   componentFilePath: string;
@@ -91,19 +92,19 @@ interface CollectionContext {
 }
 
 function isAttributeSelector(name: string): boolean {
-  return name.startsWith('app') || name.startsWith('sl') || name.startsWith('ngx');
+  return name.startsWith("app") || name.startsWith("sl") || name.startsWith("ngx");
 }
 
 function mergeExpressionInto(
   source: AST | ASTWithSource,
   ctx: CollectionContext,
-  targets: ('property' | 'interpolation' | 'event')[],
+  targets: ("property" | "interpolation" | "event")[],
 ): void {
   const { identifiers, pipes } = collectExpression(source);
   for (const id of identifiers) {
-    if (targets.includes('property')) ctx.propertyBindings.add(id);
-    if (targets.includes('interpolation')) ctx.interpolations.add(id);
-    if (targets.includes('event')) ctx.eventBindings.add(id);
+    if (targets.includes("property")) ctx.propertyBindings.add(id);
+    if (targets.includes("interpolation")) ctx.interpolations.add(id);
+    if (targets.includes("event")) ctx.eventBindings.add(id);
   }
   for (const p of pipes) ctx.pipes.add(p);
 }
@@ -112,7 +113,7 @@ function walkTemplateNodes(nodes: TmplAstNode[], ctx: CollectionContext): void {
   for (const node of nodes) {
     if (node instanceof TmplAstElement) {
       const tag = node.name.toLowerCase();
-      if (!NATIVE_HTML_TAGS.has(tag) && !tag.startsWith('ng-')) {
+      if (!NATIVE_HTML_TAGS.has(tag) && !tag.startsWith("ng-")) {
         ctx.selectors.add(tag);
       }
 
@@ -122,11 +123,11 @@ function walkTemplateNodes(nodes: TmplAstNode[], ctx: CollectionContext): void {
 
       for (const input of node.inputs) {
         if (isAttributeSelector(input.name)) ctx.selectors.add(`[${input.name}]`);
-        mergeExpressionInto(input.value, ctx, ['property']);
+        mergeExpressionInto(input.value, ctx, ["property"]);
       }
 
       for (const output of node.outputs) {
-        mergeExpressionInto(output.handler, ctx, ['property', 'event']);
+        mergeExpressionInto(output.handler, ctx, ["property", "event"]);
       }
 
       for (const ref of node.references) {
@@ -138,14 +139,14 @@ function walkTemplateNodes(nodes: TmplAstNode[], ctx: CollectionContext): void {
       for (const attr of node.templateAttrs) {
         if (attr instanceof TmplAstBoundAttribute) {
           if (isAttributeSelector(attr.name)) ctx.selectors.add(`[${attr.name}]`);
-          mergeExpressionInto(attr.value, ctx, ['property']);
+          mergeExpressionInto(attr.value, ctx, ["property"]);
         } else if (attr instanceof TmplAstTextAttribute) {
           if (isAttributeSelector(attr.name)) ctx.selectors.add(`[${attr.name}]`);
         }
       }
 
       for (const input of node.inputs) {
-        mergeExpressionInto(input.value, ctx, ['property']);
+        mergeExpressionInto(input.value, ctx, ["property"]);
       }
 
       for (const ref of node.references) {
@@ -154,21 +155,21 @@ function walkTemplateNodes(nodes: TmplAstNode[], ctx: CollectionContext): void {
 
       walkTemplateNodes(node.children, ctx);
     } else if (node instanceof TmplAstBoundText) {
-      mergeExpressionInto(node.value, ctx, ['property', 'interpolation']);
+      mergeExpressionInto(node.value, ctx, ["property", "interpolation"]);
     } else if (node instanceof TmplAstIfBlock) {
       for (const branch of node.branches) {
-        if (branch.expression) mergeExpressionInto(branch.expression, ctx, ['property']);
+        if (branch.expression) mergeExpressionInto(branch.expression, ctx, ["property"]);
         walkTemplateNodes(branch.children, ctx);
       }
     } else if (node instanceof TmplAstForLoopBlock) {
-      if (node.expression) mergeExpressionInto(node.expression, ctx, ['property']);
-      if (node.trackBy) mergeExpressionInto(node.trackBy, ctx, ['property']);
+      if (node.expression) mergeExpressionInto(node.expression, ctx, ["property"]);
+      if (node.trackBy) mergeExpressionInto(node.trackBy, ctx, ["property"]);
       walkTemplateNodes(node.children, ctx);
       if (node.empty) walkTemplateNodes(node.empty.children, ctx);
     } else if (node instanceof TmplAstSwitchBlock) {
-      if (node.expression) mergeExpressionInto(node.expression, ctx, ['property']);
+      if (node.expression) mergeExpressionInto(node.expression, ctx, ["property"]);
       for (const switchCase of node.cases) {
-        if (switchCase.expression) mergeExpressionInto(switchCase.expression, ctx, ['property']);
+        if (switchCase.expression) mergeExpressionInto(switchCase.expression, ctx, ["property"]);
         walkTemplateNodes(switchCase.children, ctx);
       }
     } else if (node instanceof TmplAstDeferredBlock) {
@@ -183,21 +184,32 @@ function walkTemplateNodes(nodes: TmplAstNode[], ctx: CollectionContext): void {
 }
 
 function hasChildren(node: TmplAstNode): node is TmplAstNode & { children: TmplAstNode[] } {
-  return 'children' in node && Array.isArray((node as Record<string, unknown>).children);
+  return "children" in node && Array.isArray((node as Record<string, unknown>).children);
 }
 
 // ---------------------------------------------------------------------------
 // Template content extraction (unchanged — parses TS decorator, not HTML)
 // ---------------------------------------------------------------------------
 
-const getTemplateContent = (componentFilePath: string, componentContent: string): { templatePath: string; content: string } | null => {
+const getTemplateContent = (
+  componentFilePath: string,
+  componentContent: string,
+  rootDir?: string,
+): { templatePath: string; content: string } | null => {
   const templateUrlMatch = componentContent.match(/templateUrl\s*:\s*['"]([^'"]+)['"]/);
   if (templateUrlMatch) {
     const templateRelPath = templateUrlMatch[1];
     const templateFullPath = path.resolve(path.dirname(componentFilePath), templateRelPath);
+    if (rootDir) {
+      const resolvedRoot = path.resolve(rootDir);
+      if (!templateFullPath.startsWith(resolvedRoot + path.sep) && templateFullPath !== resolvedRoot) {
+        logger.debug(`Template path escapes project root: ${templateRelPath}`);
+        return null;
+      }
+    }
     if (existsSync(templateFullPath)) {
       try {
-        return { templatePath: templateFullPath, content: readFileSync(templateFullPath, 'utf-8') };
+        return { templatePath: templateFullPath, content: readFileSync(templateFullPath, "utf-8") };
       } catch {
         return null;
       }
@@ -227,8 +239,12 @@ const getTemplateContent = (componentFilePath: string, componentContent: string)
 // Public API
 // ---------------------------------------------------------------------------
 
-export const parseTemplate = (componentFilePath: string, componentContent: string): TemplateUsage | null => {
-  const template = getTemplateContent(componentFilePath, componentContent);
+export const parseTemplate = (
+  componentFilePath: string,
+  componentContent: string,
+  rootDir?: string,
+): TemplateUsage | null => {
+  const template = getTemplateContent(componentFilePath, componentContent, rootDir);
   if (!template) return null;
 
   try {
@@ -265,8 +281,8 @@ export const parseTemplate = (componentFilePath: string, componentContent: strin
 };
 
 export const buildProjectTemplateMap = (directory: string): ProjectTemplateMap => {
-  const srcDir = existsSync(path.join(directory, 'src')) ? path.join(directory, 'src') : directory;
-  const tsFiles = walkFiles(srcDir, ['.ts']);
+  const srcDir = existsSync(path.join(directory, "src")) ? path.join(directory, "src") : directory;
+  const tsFiles = walkFiles(srcDir, [".ts"]);
 
   const byComponentFile = new Map<string, TemplateUsage>();
   const allUsedSelectors = new Set<string>();
@@ -274,13 +290,13 @@ export const buildProjectTemplateMap = (directory: string): ProjectTemplateMap =
   const allUsedProperties = new Set<string>();
 
   for (const filePath of tsFiles) {
-    if (filePath.endsWith('.spec.ts') || filePath.endsWith('.test.ts')) continue;
+    if (filePath.endsWith(".spec.ts") || filePath.endsWith(".test.ts")) continue;
 
     try {
-      const content = readFileSync(filePath, 'utf-8');
-      if (!content.includes('@Component')) continue;
+      const content = readFileSync(filePath, "utf-8");
+      if (!content.includes("@Component")) continue;
 
-      const usage = parseTemplate(filePath, content);
+      const usage = parseTemplate(filePath, content, directory);
       if (!usage) continue;
 
       byComponentFile.set(filePath, usage);
@@ -297,30 +313,185 @@ export const buildProjectTemplateMap = (directory: string): ProjectTemplateMap =
 };
 
 const NATIVE_HTML_TAGS = new Set([
-  'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo',
-  'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup',
-  'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em',
-  'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4',
-  'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 'input',
-  'ins', 'kbd', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'meta',
-  'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param',
-  'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'search',
-  'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary',
-  'sup', 'svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead',
-  'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr',
-  'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'text', 'g', 'defs', 'use',
-  'symbol', 'clippath', 'mask', 'pattern', 'image', 'foreignobject', 'lineargradient',
-  'radialgradient', 'stop', 'filter', 'animate', 'animatetransform', 'tspan',
-  'router-outlet',
+  "a",
+  "abbr",
+  "address",
+  "area",
+  "article",
+  "aside",
+  "audio",
+  "b",
+  "base",
+  "bdi",
+  "bdo",
+  "blockquote",
+  "body",
+  "br",
+  "button",
+  "canvas",
+  "caption",
+  "cite",
+  "code",
+  "col",
+  "colgroup",
+  "data",
+  "datalist",
+  "dd",
+  "del",
+  "details",
+  "dfn",
+  "dialog",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "embed",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "head",
+  "header",
+  "hgroup",
+  "hr",
+  "html",
+  "i",
+  "iframe",
+  "img",
+  "input",
+  "ins",
+  "kbd",
+  "label",
+  "legend",
+  "li",
+  "link",
+  "main",
+  "map",
+  "mark",
+  "menu",
+  "meta",
+  "meter",
+  "nav",
+  "noscript",
+  "object",
+  "ol",
+  "optgroup",
+  "option",
+  "output",
+  "p",
+  "param",
+  "picture",
+  "pre",
+  "progress",
+  "q",
+  "rp",
+  "rt",
+  "ruby",
+  "s",
+  "samp",
+  "script",
+  "search",
+  "section",
+  "select",
+  "slot",
+  "small",
+  "source",
+  "span",
+  "strong",
+  "style",
+  "sub",
+  "summary",
+  "sup",
+  "svg",
+  "table",
+  "tbody",
+  "td",
+  "template",
+  "textarea",
+  "tfoot",
+  "th",
+  "thead",
+  "time",
+  "title",
+  "tr",
+  "track",
+  "u",
+  "ul",
+  "var",
+  "video",
+  "wbr",
+  "path",
+  "circle",
+  "rect",
+  "line",
+  "polyline",
+  "polygon",
+  "text",
+  "g",
+  "defs",
+  "use",
+  "symbol",
+  "clippath",
+  "mask",
+  "pattern",
+  "image",
+  "foreignobject",
+  "lineargradient",
+  "radialgradient",
+  "stop",
+  "filter",
+  "animate",
+  "animatetransform",
+  "tspan",
+  "router-outlet",
 ]);
 
 const BUILTIN_PIPES = new Set([
-  'async', 'currency', 'date', 'decimal', 'i18nPlural', 'i18nSelect', 'json', 'keyvalue',
-  'lowercase', 'number', 'percent', 'slice', 'titlecase', 'uppercase',
+  "async",
+  "currency",
+  "date",
+  "decimal",
+  "i18nPlural",
+  "i18nSelect",
+  "json",
+  "keyvalue",
+  "lowercase",
+  "number",
+  "percent",
+  "slice",
+  "titlecase",
+  "uppercase",
 ]);
 
 const ANGULAR_KEYWORDS = new Set([
-  'let', 'of', 'as', 'index', 'first', 'last', 'even', 'odd', 'count', 'track', 'by',
-  'true', 'false', 'null', 'undefined', 'this', 'if', 'else', 'for', 'switch', 'case',
-  'default', 'empty',
+  "let",
+  "of",
+  "as",
+  "index",
+  "first",
+  "last",
+  "even",
+  "odd",
+  "count",
+  "track",
+  "by",
+  "true",
+  "false",
+  "null",
+  "undefined",
+  "this",
+  "if",
+  "else",
+  "for",
+  "switch",
+  "case",
+  "default",
+  "empty",
 ]);

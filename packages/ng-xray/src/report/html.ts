@@ -1,48 +1,45 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import type { AnalyzerRunInfo, Diagnostic, ScanResult, SignalReadinessReport } from '../types.js';
-import {
-  RULE_MAX_DEDUCTIONS,
-  SEVERITY_WEIGHTS,
-  VERSION,
-} from '../constants.js';
-import { generateCursorPrompt, generateFixAllPrompt } from './cursor-prompts.js';
-import { getTopHotspots } from './heatmap.js';
-import { RULE_DOCS } from './rule-docs.js';
-import type { HistoryData } from '../history.js';
+import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import type { AnalyzerRunInfo, Diagnostic, ScanResult, SignalReadinessReport } from "../types.js";
+import { RULE_MAX_DEDUCTIONS, SEVERITY_WEIGHTS, VERSION } from "../constants.js";
+import { generateCursorPrompt, generateFixAllPrompt } from "./cursor-prompts.js";
+import { getTopHotspots } from "./heatmap.js";
+import { RULE_DOCS } from "./rule-docs.js";
+import type { HistoryData } from "../history.js";
 
 const escapeHtml = (s: string): string =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-const scoreColor = (s: number) =>
-  s >= 85 ? 'var(--accent)' : s >= 70 ? 'var(--amber)' : s >= 50 ? 'var(--amber)' : 'var(--red)';
+const scoreColor = (s: number) => (s >= 85 ? "var(--accent)" : s >= 70 ? "var(--amber)" : "var(--red)");
 
-const scoreColorRaw = (s: number) =>
-  s >= 85 ? '#3B82F6' : s >= 70 ? '#E3A008' : s >= 50 ? '#E3A008' : '#F85149';
+const scoreColorRaw = (s: number) => (s >= 85 ? "#3B82F6" : s >= 70 ? "#E3A008" : "#F85149");
 
-const priorityBadge = (p: string) =>
-  p === 'high' ? 'badge-high' : p === 'medium' ? 'badge-med' : 'badge-low';
+const priorityBadge = (p: string) => (p === "high" ? "badge-high" : p === "medium" ? "badge-med" : "badge-low");
 
-const effortBadge = (e: string) =>
-  e === 'quick-fix' ? 'badge-qf' : e === 'moderate' ? 'badge-mod' : 'badge-ref';
+const effortBadge = (e: string) => (e === "quick-fix" ? "badge-qf" : e === "moderate" ? "badge-mod" : "badge-ref");
 
 const MAX_FILES_PER_GROUP = 5;
 
 const CATEGORY_LABELS: Record<string, string> = {
-  'best-practices': 'Best Practices',
-  performance: 'Performance',
-  architecture: 'Architecture',
-  'dead-code': 'Dead Code',
-  security: 'Security',
+  "best-practices": "Best Practices",
+  performance: "Performance",
+  architecture: "Architecture",
+  "dead-code": "Dead Code",
+  security: "Security",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  'best-practices': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>',
-  performance: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
-  architecture: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
-  'dead-code': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
-  security: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>',
+  "best-practices":
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>',
+  performance:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+  architecture:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
+  "dead-code":
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
+  security:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>',
 };
 
 const LOGO_SVG = `<svg width="48" height="48" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
@@ -494,25 +491,27 @@ const buildScoreHero = (result: ScanResult): string => {
   const circ = 2 * Math.PI * 80;
   const offset = circ * (1 - score.overall / 100);
 
-  const errs = result.diagnostics.filter(d => d.severity === 'error').length;
-  const warns = result.diagnostics.filter(d => d.severity === 'warning').length;
-  const affectedFiles = new Set(result.diagnostics.map(d => d.filePath)).size;
+  const errs = result.diagnostics.filter((d) => d.severity === "error").length;
+  const warns = result.diagnostics.filter((d) => d.severity === "warning").length;
+  const affectedFiles = new Set(result.diagnostics.map((d) => d.filePath)).size;
   const topFixes = result.remediation.length;
 
-  const bars = score.categories.map(c => {
-    const actual = c.maxDeduction - c.deduction;
-    const pct = c.maxDeduction > 0 ? (actual / c.maxDeduction) * 100 : 0;
-    const barCol = scoreColorRaw(pct);
-    const icon = CATEGORY_ICONS[c.category] ?? '';
-    return `<div class="hero-bar-row" data-tip="${escapeHtml(c.label)}: ${actual}/${c.maxDeduction} pts, ${c.issueCount} issues">
+  const bars = score.categories
+    .map((c) => {
+      const actual = c.maxDeduction - c.deduction;
+      const pct = c.maxDeduction > 0 ? (actual / c.maxDeduction) * 100 : 0;
+      const barCol = scoreColorRaw(pct);
+      const icon = CATEGORY_ICONS[c.category] ?? "";
+      return `<div class="hero-bar-row" data-tip="${escapeHtml(c.label)}: ${actual}/${c.maxDeduction} pts, ${c.issueCount} issues">
       <span class="hero-bar-name">${icon} ${escapeHtml(c.label)}</span>
       <div class="hero-bar-track"><div class="hero-bar-fill" style="width:${pct.toFixed(0)}%;background:${barCol}"></div></div>
       <span class="hero-bar-val">${actual}/${c.maxDeduction}</span>
     </div>`;
-  }).join('');
+    })
+    .join("");
 
-  const errCol = errs > 0 ? 'color:var(--red)' : 'color:var(--text-3)';
-  const warnCol = warns > 0 ? 'color:var(--amber)' : 'color:var(--text-3)';
+  const errCol = errs > 0 ? "color:var(--red)" : "color:var(--text-3)";
+  const warnCol = warns > 0 ? "color:var(--amber)" : "color:var(--text-3)";
 
   return `<div class="hero-card">
     <div class="hero-inner">
@@ -541,47 +540,66 @@ const buildScoreHero = (result: ScanResult): string => {
   </div>`;
 };
 
-const buildTrendCard = (
-  history: HistoryData | undefined,
-  profile: ScanResult['profile'],
-): string => {
-  if (!history) return '';
-  const ent = history.entries
-    .filter((entry) => (entry.profile ?? 'core') === (profile ?? 'core'))
-    .slice(-30);
-  if (ent.length < 2) return '';
+const buildTrendCard = (history: HistoryData | undefined, profile: ScanResult["profile"]): string => {
+  if (!history) return "";
+  const ent = history.entries.filter((entry) => (entry.profile ?? "core") === (profile ?? "core")).slice(-30);
+  if (ent.length < 2) return "";
   const n = ent.length;
-  const W = 880, H = 156, pad = { t: 10, r: 12, b: 40, l: 32 };
-  const pW = W - pad.l - pad.r, pH = H - pad.t - pad.b;
-  const fmtDate = (ts: string) => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const pts = ent.map((e, i) => ({ x: pad.l + (i / (n - 1)) * pW, y: pad.t + pH - (e.score / 100) * pH, s: e.score, d: fmtDate(e.timestamp), iss: e.totalIssues }));
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const W = 880,
+    H = 156,
+    pad = { t: 10, r: 12, b: 40, l: 32 };
+  const pW = W - pad.l - pad.r,
+    pH = H - pad.t - pad.b;
+  const fmtDate = (ts: string) => new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const pts = ent.map((e, i) => ({
+    x: pad.l + (i / (n - 1)) * pW,
+    y: pad.t + pH - (e.score / 100) * pH,
+    s: e.score,
+    d: fmtDate(e.timestamp),
+    iss: e.totalIssues,
+  }));
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
   const area = `${line} L${pts[n - 1].x.toFixed(1)} ${H - pad.b} L${pts[0].x.toFixed(1)} ${H - pad.b}Z`;
-  const last = ent[n - 1], prev = ent[n - 2];
-  const sd = last.score - prev.score, id = last.totalIssues - prev.totalIssues;
+  const last = ent[n - 1],
+    prev = ent[n - 2];
+  const sd = last.score - prev.score,
+    id = last.totalIssues - prev.totalIssues;
   const col = scoreColorRaw(last.score);
-  const grid = [0, 50, 100].map(v => { const y = pad.t + pH - (v / 100) * pH; return `<line x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}" class="t-grid"/><text x="${pad.l - 6}" y="${y + 3}" text-anchor="end" class="t-lbl">${v}</text>`; }).join('');
-  const dots = pts.map(p => `<g class="t-dot-g"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="12" fill="transparent" class="t-dot-hit"><title>${p.d}: ${p.s}/100, ${p.iss} issues</title></circle><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${scoreColorRaw(p.s)}" class="t-dot" pointer-events="none"/></g>`).join('');
+  const grid = [0, 50, 100]
+    .map((v) => {
+      const y = pad.t + pH - (v / 100) * pH;
+      return `<line x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}" class="t-grid"/><text x="${pad.l - 6}" y="${y + 3}" text-anchor="end" class="t-lbl">${v}</text>`;
+    })
+    .join("");
+  const dots = pts
+    .map(
+      (p) =>
+        `<g class="t-dot-g"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="12" fill="transparent" class="t-dot-hit"><title>${p.d}: ${p.s}/100, ${p.iss} issues</title></circle><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${scoreColorRaw(p.s)}" class="t-dot" pointer-events="none"/></g>`,
+    )
+    .join("");
   const dateY = H - pad.b + 16;
   const dateLbls: string[] = [];
   dateLbls.push(`<text x="${pts[0].x.toFixed(1)}" y="${dateY}" text-anchor="start" class="t-lbl">${pts[0].d}</text>`);
   if (n >= 5) {
     const mi = Math.floor(n / 2);
-    dateLbls.push(`<text x="${pts[mi].x.toFixed(1)}" y="${dateY}" text-anchor="middle" class="t-lbl">${pts[mi].d}</text>`);
+    dateLbls.push(
+      `<text x="${pts[mi].x.toFixed(1)}" y="${dateY}" text-anchor="middle" class="t-lbl">${pts[mi].d}</text>`,
+    );
   }
-  dateLbls.push(`<text x="${pts[n - 1].x.toFixed(1)}" y="${dateY}" text-anchor="end" class="t-lbl">${pts[n - 1].d}</text>`);
+  dateLbls.push(
+    `<text x="${pts[n - 1].x.toFixed(1)}" y="${dateY}" text-anchor="end" class="t-lbl">${pts[n - 1].d}</text>`,
+  );
 
   return `<div class="card trend-card">
-    <div class="card-header"><span class="card-title">Score Trend</span><div class="trend-deltas"><span class="${sd >= 0 ? 'td-up' : 'td-dn'}">${sd >= 0 ? '+' : ''}${sd} pts</span><span class="${id <= 0 ? 'td-up' : 'td-dn'}">${id >= 0 ? '+' : ''}${id} issues</span></div></div>
-    <div class="card-body" style="padding:12px 14px"><svg viewBox="0 0 ${W} ${H}" class="trend-svg">${grid}<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${col}" stop-opacity=".25"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#tg)" class="t-area"/><path d="${line}" stroke="${col}" class="t-line"/>${dots}${dateLbls.join('')}</svg></div>
+    <div class="card-header"><span class="card-title">Score Trend</span><div class="trend-deltas"><span class="${sd >= 0 ? "td-up" : "td-dn"}">${sd >= 0 ? "+" : ""}${sd} pts</span><span class="${id <= 0 ? "td-up" : "td-dn"}">${id >= 0 ? "+" : ""}${id} issues</span></div></div>
+    <div class="card-body" style="padding:12px 14px"><svg viewBox="0 0 ${W} ${H}" class="trend-svg">${grid}<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${col}" stop-opacity=".25"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#tg)" class="t-area"/><path d="${line}" stroke="${col}" class="t-line"/>${dots}${dateLbls.join("")}</svg></div>
   </div>`;
 };
 
-const pctColor = (pct: number): string =>
-  pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+const pctColor = (pct: number): string => (pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--amber)" : "var(--red)");
 
 const buildSignalCard = (sr: SignalReadinessReport | undefined): string => {
-  if (!sr) return '';
+  if (!sr) return "";
   const col = pctColor(sr.score);
 
   if (sr.score === 0) {
@@ -605,7 +623,8 @@ const buildSignalCard = (sr: SignalReadinessReport | undefined): string => {
         <div class="sig-row-bar"><div class="sig-row-fill" style="width:${pct}%;background:${barCol}"></div></div>
         <span class="sig-row-pct" style="color:${barCol}">${pct}%</span>
       </div>`;
-    }).join('');
+    })
+    .join("");
 
   return `<div class="card">
     <div class="card-header"><span class="card-title">Signal Readiness</span></div>
@@ -617,27 +636,29 @@ const buildSignalCard = (sr: SignalReadinessReport | undefined): string => {
 
 const buildHotspotCard = (diagnostics: Diagnostic[]): string => {
   const spots = getTopHotspots(diagnostics, 8);
-  if (!spots.length) return '';
-  const maxCount = Math.max(...spots.map(s => s.count));
+  if (!spots.length) return "";
+  const maxCount = Math.max(...spots.map((s) => s.count));
 
-  const items = spots.map(s => {
-    const name = s.filePath.split('/').pop() ?? s.filePath;
-    const errPct = maxCount > 0 ? (s.errors / maxCount) * 100 : 0;
-    const warnPct = maxCount > 0 ? (s.warnings / maxCount) * 100 : 0;
-    return `<div class="hot-item" title="${escapeHtml(s.filePath)}">
+  const items = spots
+    .map((s) => {
+      const name = s.filePath.split("/").pop() ?? s.filePath;
+      const errPct = maxCount > 0 ? (s.errors / maxCount) * 100 : 0;
+      const warnPct = maxCount > 0 ? (s.warnings / maxCount) * 100 : 0;
+      return `<div class="hot-item" title="${escapeHtml(s.filePath)}">
       <div class="hot-top">
         <span class="hot-name">${escapeHtml(name)}</span>
         <div class="hot-counts">
-          ${s.errors > 0 ? `<span><span class="hot-sev-dot" style="background:var(--red)"></span>${s.errors}</span>` : ''}
-          ${s.warnings > 0 ? `<span><span class="hot-sev-dot" style="background:var(--amber)"></span>${s.warnings}</span>` : ''}
+          ${s.errors > 0 ? `<span><span class="hot-sev-dot" style="background:var(--red)"></span>${s.errors}</span>` : ""}
+          ${s.warnings > 0 ? `<span><span class="hot-sev-dot" style="background:var(--amber)"></span>${s.warnings}</span>` : ""}
         </div>
       </div>
       <div class="hot-bar-track">
-        ${s.errors > 0 ? `<div class="hot-bar-err" style="width:${errPct.toFixed(1)}%"></div>` : ''}
-        ${s.warnings > 0 ? `<div class="hot-bar-warn" style="width:${warnPct.toFixed(1)}%"></div>` : ''}
+        ${s.errors > 0 ? `<div class="hot-bar-err" style="width:${errPct.toFixed(1)}%"></div>` : ""}
+        ${s.warnings > 0 ? `<div class="hot-bar-warn" style="width:${warnPct.toFixed(1)}%"></div>` : ""}
       </div>
     </div>`;
-  }).join('');
+    })
+    .join("");
 
   return `<div class="card">
     <div class="card-header"><span class="card-title">File Hotspots</span><span class="card-meta">top ${spots.length}</span></div>
@@ -652,61 +673,61 @@ const formatDuration = (ms: number): string => {
 
 const buildScanMeta = (result: ScanResult): string => {
   const ts = new Date(result.timestamp);
-  const dateStr = ts.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-  const timeStr = ts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  const configLabel = result.configPath ?? 'defaults';
-  const profile = result.profile ?? 'core';
+  const dateStr = ts.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  const timeStr = ts.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const configLabel = result.configPath ?? "defaults";
+  const profile = result.profile ?? "core";
   const advisoryCount = result.advisoryDiagnosticsCount ?? 0;
   const excludedCount = result.excludedDiagnosticsCount ?? 0;
-  const statusLabel = result.scanStatus === 'complete'
-    ? '<span style="color:var(--green)">complete</span>'
-    : `<span style="color:var(--amber)">partial</span> — ${result.failedAnalyzers.length} failed`;
+  const statusLabel =
+    result.scanStatus === "complete"
+      ? '<span style="color:var(--green)">complete</span>'
+      : `<span style="color:var(--amber)">partial</span> — ${result.failedAnalyzers.length} failed`;
 
-  const ran = result.analyzerRuns.filter(a => a.status === 'ran').length;
-  const skipped = result.analyzerRuns.filter(a => a.status === 'skipped').length;
-  const failed = result.analyzerRuns.filter(a => a.status === 'failed').length;
+  const ran = result.analyzerRuns.filter((a) => a.status === "ran").length;
+  const skipped = result.analyzerRuns.filter((a) => a.status === "skipped").length;
+  const failed = result.analyzerRuns.filter((a) => a.status === "failed").length;
 
   return `<div class="scan-meta">
     <div class="scan-meta-grid">
       <div class="scan-meta-item"><span class="scan-meta-lbl">Project</span><span class="scan-meta-val" title="${escapeHtml(result.project.rootDirectory)}">${escapeHtml(result.project.projectName)}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">Scanned</span><span class="scan-meta-val">${dateStr} ${timeStr}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">ng-xray</span><span class="scan-meta-val">v${escapeHtml(VERSION)}</span></div>
-      <div class="scan-meta-item"><span class="scan-meta-lbl">Angular</span><span class="scan-meta-val">${escapeHtml(result.project.angularVersion ?? 'unknown')}</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Angular</span><span class="scan-meta-val">${escapeHtml(result.project.angularVersion ?? "unknown")}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">Duration</span><span class="scan-meta-val">${formatDuration(result.elapsedMs)}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">Config</span><span class="scan-meta-val" title="${escapeHtml(configLabel)}">${escapeHtml(configLabel)}</span></div>
-      <div class="scan-meta-item"><span class="scan-meta-lbl">Analyzers</span><span class="scan-meta-val">${ran} ran${skipped > 0 ? `, ${skipped} skipped` : ''}${failed > 0 ? `, ${failed} failed` : ''}</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Analyzers</span><span class="scan-meta-val">${ran} ran${skipped > 0 ? `, ${skipped} skipped` : ""}${failed > 0 ? `, ${failed} failed` : ""}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">Status</span><span class="scan-meta-val">${statusLabel}</span></div>
       <div class="scan-meta-item"><span class="scan-meta-lbl">Score Profile</span><span class="scan-meta-val">${escapeHtml(profile)}</span></div>
-      <div class="scan-meta-item"><span class="scan-meta-lbl">Advisory</span><span class="scan-meta-val">${advisoryCount} total${excludedCount > 0 ? `, ${excludedCount} excluded` : ''}</span></div>
+      <div class="scan-meta-item"><span class="scan-meta-lbl">Advisory</span><span class="scan-meta-val">${advisoryCount} total${excludedCount > 0 ? `, ${excludedCount} excluded` : ""}</span></div>
     </div>
   </div>`;
 };
 
 const buildAnalyzerSummary = (result: ScanResult): string => {
-  if (!result.analyzerRuns.length) return '';
+  if (!result.analyzerRuns.length) return "";
 
   const statusIcon = (s: string) => {
-    if (s === 'ran') return '<span class="az-status az-ran">&#10003; ran</span>';
-    if (s === 'failed') return '<span class="az-status az-failed">&#10007; failed</span>';
+    if (s === "ran") return '<span class="az-status az-ran">&#10003; ran</span>';
+    if (s === "failed") return '<span class="az-status az-failed">&#10007; failed</span>';
     return '<span class="az-status az-skipped">— skipped</span>';
   };
 
   const errChev = `<svg class="az-err-toggle" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>`;
 
-  const rows = result.analyzerRuns.map((a: AnalyzerRunInfo) => {
-    const durStr = a.status === 'skipped' ? '—' : formatDuration(a.durationMs);
-    const countStr = a.status === 'skipped' ? '—' : String(a.findingsCount);
-    const stabBadge = a.experimental
-      ? '<span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span>'
-      : '<span style="font-size:11px;color:var(--text-3)">stable</span>';
-    const hasErr = !!a.errorMessage;
-    const wrapCls = `az-wrap${hasErr ? ' has-err' : ''}`;
-    const toggle = hasErr ? ` onclick="this.classList.toggle('open')"` : '';
-    const namePrefix = hasErr ? errChev : '';
-    const errBody = hasErr
-      ? `<div class="az-err-body">${escapeHtml(a.errorMessage!)}</div>`
-      : '';
-    return `<div class="${wrapCls}"${toggle}>
+  const rows = result.analyzerRuns
+    .map((a: AnalyzerRunInfo) => {
+      const durStr = a.status === "skipped" ? "—" : formatDuration(a.durationMs);
+      const countStr = a.status === "skipped" ? "—" : String(a.findingsCount);
+      const stabBadge = a.experimental
+        ? '<span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px">experimental</span>'
+        : '<span style="font-size:11px;color:var(--text-3)">stable</span>';
+      const hasErr = !!a.errorMessage;
+      const wrapCls = `az-wrap${hasErr ? " has-err" : ""}`;
+      const toggle = hasErr ? ` onclick="this.classList.toggle('open')"` : "";
+      const namePrefix = hasErr ? errChev : "";
+      const errBody = hasErr ? `<div class="az-err-body">${escapeHtml(a.errorMessage!)}</div>` : "";
+      return `<div class="${wrapCls}"${toggle}>
       <div class="az-row">
         <span class="az-name">${namePrefix}${escapeHtml(a.label)}</span>
         ${statusIcon(a.status)}
@@ -715,7 +736,8 @@ const buildAnalyzerSummary = (result: ScanResult): string => {
         <span class="az-stab">${stabBadge}</span>
       </div>${errBody}
     </div>`;
-  }).join('');
+    })
+    .join("");
 
   const total = result.analyzerRuns.length;
 
@@ -737,26 +759,30 @@ const buildAnalyzerSummary = (result: ScanResult): string => {
 };
 
 const buildScoreMethodology = (result: ScanResult): string => {
-  const catRows = result.score.categories.map(c => {
-    const remaining = c.maxDeduction - c.deduction;
-    const pct = c.maxDeduction > 0 ? Math.round((c.deduction / c.maxDeduction) * 100) : 0;
-    return `<tr>
+  const catRows = result.score.categories
+    .map((c) => {
+      const remaining = c.maxDeduction - c.deduction;
+      const pct = c.maxDeduction > 0 ? Math.round((c.deduction / c.maxDeduction) * 100) : 0;
+      return `<tr>
       <td>${escapeHtml(c.label)}</td>
       <td class="mono">${c.maxDeduction}</td>
       <td class="mono">${c.deduction}</td>
       <td class="mono">${remaining}</td>
       <td class="mono">${pct}%</td>
     </tr>`;
-  }).join('');
+    })
+    .join("");
 
   const ruleCaps = Object.entries(RULE_MAX_DEDUCTIONS);
-  const ruleCapsHtml = ruleCaps.length > 0
-    ? `<div class="meth-rule-caps"><strong>Per-rule caps:</strong> ${ruleCaps.map(([rule, cap]) => `<code>${escapeHtml(rule)}</code>&nbsp;≤&nbsp;${cap}`).join(', ')}</div>`
-    : '';
+  const ruleCapsHtml =
+    ruleCaps.length > 0
+      ? `<div class="meth-rule-caps"><strong>Per-rule caps:</strong> ${ruleCaps.map(([rule, cap]) => `<code>${escapeHtml(rule)}</code>&nbsp;≤&nbsp;${cap}`).join(", ")}</div>`
+      : "";
 
-  const partialNote = result.scanStatus === 'partial'
-    ? `<div class="meth-note" style="color:var(--amber)">This scan was partial — ${result.failedAnalyzers.length} analyzer(s) failed (${result.failedAnalyzers.map(escapeHtml).join(', ')}). The score may not reflect full project health.</div>`
-    : '';
+  const partialNote =
+    result.scanStatus === "partial"
+      ? `<div class="meth-note" style="color:var(--amber)">This scan was partial — ${result.failedAnalyzers.length} analyzer(s) failed (${result.failedAnalyzers.map(escapeHtml).join(", ")}). The score may not reflect full project health.</div>`
+      : "";
 
   return `<div class="score-popup" id="score-popup">
     <div class="score-popup-title">Score Details <button class="score-popup-close" onclick="toggleScoreInfo()">&times;</button></div>
@@ -778,39 +804,50 @@ const buildScoreMethodology = (result: ScanResult): string => {
 };
 
 const buildRemediation = (result: ScanResult): string => {
-  if (!result.remediation.length) return '';
+  if (!result.remediation.length) return "";
 
   const tiers = {
-    'Quick Wins': result.remediation.filter(r => { const rd = RULE_DOCS[r.rule]; return rd?.effort === 'quick-fix'; }),
-    'Moderate Effort': result.remediation.filter(r => { const rd = RULE_DOCS[r.rule]; return rd?.effort === 'moderate'; }),
-    'Refactors': result.remediation.filter(r => { const rd = RULE_DOCS[r.rule]; return !rd || rd.effort === 'refactor'; }),
+    "Quick Wins": result.remediation.filter((r) => {
+      const rd = RULE_DOCS[r.rule];
+      return rd?.effort === "quick-fix";
+    }),
+    "Moderate Effort": result.remediation.filter((r) => {
+      const rd = RULE_DOCS[r.rule];
+      return rd?.effort === "moderate";
+    }),
+    Refactors: result.remediation.filter((r) => {
+      const rd = RULE_DOCS[r.rule];
+      return !rd || rd.effort === "refactor";
+    }),
   };
 
   const totalImpact = result.remediation.reduce((s, r) => s + r.estimatedScoreImpact, 0);
-  const allCritDiags = result.diagnostics.filter(d => d.severity === 'error');
-  const fixAllPrompt = allCritDiags.length > 0 ? generateFixAllPrompt(allCritDiags) : '';
-  const fixAllAttr = fixAllPrompt ? escapeHtml(JSON.stringify(fixAllPrompt)) : '';
+  const allCritDiags = result.diagnostics.filter((d) => d.severity === "error");
+  const fixAllPrompt = allCritDiags.length > 0 ? generateFixAllPrompt(allCritDiags) : "";
+  const fixAllAttr = fixAllPrompt ? escapeHtml(JSON.stringify(fixAllPrompt)) : "";
 
   let rank = 0;
   const buildTier = (label: string, items: typeof result.remediation): string => {
-    if (!items.length) return '';
-    const effortKey = label === 'Quick Wins' ? 'quick-fix' : label === 'Moderate Effort' ? 'moderate' : 'refactor';
-    const rows = items.map(r => {
-      rank++;
-      const diags = result.diagnostics.filter(d => d.rule === r.rule);
-      const prompt = diags.length > 0 ? generateFixAllPrompt(diags) : '';
-      const promptAttr = prompt ? escapeHtml(JSON.stringify(prompt)) : '';
-      return `<div class="rem-item">
+    if (!items.length) return "";
+    const effortKey = label === "Quick Wins" ? "quick-fix" : label === "Moderate Effort" ? "moderate" : "refactor";
+    const rows = items
+      .map((r) => {
+        rank++;
+        const diags = result.diagnostics.filter((d) => d.rule === r.rule);
+        const prompt = diags.length > 0 ? generateFixAllPrompt(diags) : "";
+        const promptAttr = prompt ? escapeHtml(JSON.stringify(prompt)) : "";
+        return `<div class="rem-item">
         <span class="rem-rank">${rank}</span>
         <div>
           <div class="rem-desc">${escapeHtml(r.description)}</div>
-          <div class="rem-detail">${r.affectedFileCount} file${r.affectedFileCount === 1 ? '' : 's'} · <span class="badge ${priorityBadge(r.priority)}">${escapeHtml(r.priority)}</span> · <span class="rem-impact">${r.includedInScore === false ? 'advisory' : `+${r.estimatedScoreImpact}`}</span></div>
+          <div class="rem-detail">${r.affectedFileCount} file${r.affectedFileCount === 1 ? "" : "s"} · <span class="badge ${priorityBadge(r.priority)}">${escapeHtml(r.priority)}</span> · <span class="rem-impact">${r.includedInScore === false ? "advisory" : `+${r.estimatedScoreImpact}`}</span></div>
         </div>
         <div class="rem-actions">
-          ${promptAttr ? `<button onclick='cursorFix(${promptAttr})' class="btn-cursor btn-cursor-icon" title="Fix in Cursor">${CURSOR_ICON}</button>` : ''}
+          ${promptAttr ? `<button onclick='cursorFix(${promptAttr})' class="btn-cursor btn-cursor-icon" title="Fix in Cursor">${CURSOR_ICON}</button>` : ""}
         </div>
       </div>`;
-    }).join('');
+      })
+      .join("");
 
     return `<div class="rem-tier" data-effort="${effortKey}">
       <div class="rem-tier-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
@@ -822,16 +859,22 @@ const buildRemediation = (result: ScanResult): string => {
     </div>`;
   };
 
-  const tiersHtml = Object.entries(tiers).map(([k, v]) => buildTier(k, v)).join('');
+  const tiersHtml = Object.entries(tiers)
+    .map(([k, v]) => buildTier(k, v))
+    .join("");
 
   const effortChips = [
-    { key: 'all', label: 'All', count: result.remediation.length },
-    { key: 'quick-fix', label: 'Quick Wins', count: tiers['Quick Wins'].length },
-    { key: 'moderate', label: 'Moderate', count: tiers['Moderate Effort'].length },
-    { key: 'refactor', label: 'Refactors', count: tiers['Refactors'].length },
-  ].filter(c => c.key === 'all' || c.count > 0)
-    .map(c => `<button onclick="filterEffort('${c.key}')" data-effort="${c.key}" class="filter-chip${c.key === 'all' ? ' active' : ''}">${c.label} <span class="cnt">${c.count}</span></button>`)
-    .join('');
+    { key: "all", label: "All", count: result.remediation.length },
+    { key: "quick-fix", label: "Quick Wins", count: tiers["Quick Wins"].length },
+    { key: "moderate", label: "Moderate", count: tiers["Moderate Effort"].length },
+    { key: "refactor", label: "Refactors", count: tiers["Refactors"].length },
+  ]
+    .filter((c) => c.key === "all" || c.count > 0)
+    .map(
+      (c) =>
+        `<button onclick="filterEffort('${c.key}')" data-effort="${c.key}" class="filter-chip${c.key === "all" ? " active" : ""}">${c.label} <span class="cnt">${c.count}</span></button>`,
+    )
+    .join("");
 
   return `<div class="section" id="s-rem">
     <div class="section-hdr" onclick="this.parentElement.classList.toggle('collapsed')">
@@ -841,7 +884,7 @@ const buildRemediation = (result: ScanResult): string => {
     </div>
     <div class="section-body">
       <div class="card">
-        ${fixAllAttr ? `<div class="rem-mega"><span class="rem-mega-text"><strong>${allCritDiags.length} critical</strong> issues can be batch-fixed</span><button onclick='cursorFix(${fixAllAttr})' class="btn-cursor">${CURSOR_ICON} Fix All</button></div>` : ''}
+        ${fixAllAttr ? `<div class="rem-mega"><span class="rem-mega-text"><strong>${allCritDiags.length} critical</strong> issues can be batch-fixed</span><button onclick='cursorFix(${fixAllAttr})' class="btn-cursor">${CURSOR_ICON} Fix All</button></div>` : ""}
         <div class="rem-filter-bar">${effortChips}</div>
         <div id="rem-list">${tiersHtml}</div>
       </div>
@@ -850,8 +893,8 @@ const buildRemediation = (result: ScanResult): string => {
 };
 
 const buildFindings = (result: ScanResult): string => {
-  const cats = ['best-practices', 'performance', 'architecture', 'dead-code', 'security'] as const;
-  const active = cats.filter(c => result.diagnostics.some(d => d.category === c));
+  const cats = ["best-practices", "performance", "architecture", "dead-code", "security"] as const;
+  const active = cats.filter((c) => result.diagnostics.some((d) => d.category === c));
 
   if (!active.length) {
     return `<div class="section" id="s-find">
@@ -861,32 +904,40 @@ const buildFindings = (result: ScanResult): string => {
   }
 
   const totalIssues = result.diagnostics.length;
-  const chips = active.map(c => {
-    const n = result.diagnostics.filter(d => d.category === c).length;
-    return `<button onclick="filterCat('${c}')" data-cat="${c}" class="filter-chip">${CATEGORY_LABELS[c] ?? c} <span class="cnt">${n}</span></button>`;
-  }).join('');
+  const chips = active
+    .map((c) => {
+      const n = result.diagnostics.filter((d) => d.category === c).length;
+      return `<button onclick="filterCat('${c}')" data-cat="${c}" class="filter-chip">${CATEGORY_LABELS[c] ?? c} <span class="cnt">${n}</span></button>`;
+    })
+    .join("");
 
   const allGroups: Array<{ sev: string; count: number; html: string }> = [];
   for (const cat of active) {
-    const diags = result.diagnostics.filter(d => d.category === cat);
+    const diags = result.diagnostics.filter((d) => d.category === cat);
     if (!diags.length) continue;
     const groups = new Map<string, typeof diags>();
-    for (const d of diags) { const l = groups.get(d.rule) ?? []; l.push(d); groups.set(d.rule, l); }
+    for (const d of diags) {
+      const l = groups.get(d.rule) ?? [];
+      l.push(d);
+      groups.set(d.rule, l);
+    }
 
     for (const [rule, items] of groups) {
       const f = items[0];
-      const sevC = f.severity === 'error' ? 'sev-e' : 'sev-w';
-      const gid = `fg-${cat}-${rule.replace(/[^a-z0-9]/gi, '-')}`;
+      const sevC = f.severity === "error" ? "sev-e" : "sev-w";
+      const gid = `fg-${cat}-${rule.replace(/[^a-z0-9]/gi, "-")}`;
       const rd = RULE_DOCS[rule];
 
-      const doc = rd ? `<div class="explain">
+      const doc = rd
+        ? `<div class="explain">
         ${escapeHtml(rd.whyItMatters)}
         <div class="codes">
           <div><div class="code-lbl code-lbl-bad">Before</div><div class="code-block code-bad">${escapeHtml(rd.beforeCode)}</div></div>
           <div><div class="code-lbl code-lbl-good">After</div><div class="code-block code-good">${escapeHtml(rd.afterCode)}</div></div>
         </div>
         <div class="effort-row"><span class="badge ${effortBadge(rd.effort)}">${rd.effort}</span></div>
-      </div>` : '';
+      </div>`
+        : "";
 
       const visibleFiles = items.slice(0, MAX_FILES_PER_GROUP);
       const hiddenFiles = items.slice(MAX_FILES_PER_GROUP);
@@ -896,45 +947,54 @@ const buildFindings = (result: ScanResult): string => {
         const pj = JSON.stringify(generateCursorPrompt(d));
         const escaped = escapeHtml(pj);
         return `<div class="file">
-          <span class="fpath" onclick="cpPath('${escapeHtml(d.filePath)}:${d.line}')" title="Click to copy path">${escapeHtml(d.filePath)}:${d.line}</span>
+          <span class="fpath" onclick="cpPath('${escapeHtml(d.filePath)}:${Number(d.line) || 0}')" title="Click to copy path">${escapeHtml(d.filePath)}:${Number(d.line) || 0}</span>
           <div class="factions">
             <button onclick='cursorFix(${escaped})' class="btn-cursor btn-cursor-icon" title="Fix in Cursor" style="padding:3px;width:22px;height:22px">${CURSOR_ICON}</button>
             <button onclick='cpPrompt(${escaped})' class="btn-ghost" style="font-size:10px;padding:3px 8px">Copy</button>
           </div>
         </div>`;
       };
-      const files = visibleFiles.map(renderFile).join('');
-      let moreSection = '';
+      const files = visibleFiles.map(renderFile).join("");
+      let moreSection = "";
       if (hiddenFiles.length > 0) {
-        moreSection = `<div class="files-hidden" id="${hiddenId}">${hiddenFiles.map(renderFile).join('')}</div><button class="files-more" onclick="toggleFiles('${hiddenId}', this)">Show ${hiddenFiles.length} more file${hiddenFiles.length === 1 ? '' : 's'} ▾</button>`;
+        moreSection = `<div class="files-hidden" id="${hiddenId}">${hiddenFiles.map(renderFile).join("")}</div><button class="files-more" onclick="toggleFiles('${hiddenId}', this)">Show ${hiddenFiles.length} more file${hiddenFiles.length === 1 ? "" : "s"} ▾</button>`;
       }
 
       const allPj = JSON.stringify(generateFixAllPrompt(items));
       const triggerActions = `<div class="fgroup-actions" onclick="event.stopPropagation()"><button onclick='cursorFix(${escapeHtml(allPj)})' class="btn-cursor" style="font-size:10px;padding:3px 10px">${CURSOR_ICON} Fix all</button></div>`;
-      const helpText = f.help && !rd ? `<p style="color:var(--text-2);font-size:13px;margin-bottom:10px">${escapeHtml(f.help)}</p>` : '';
+      const helpText =
+        f.help && !rd
+          ? `<p style="color:var(--text-2);font-size:13px;margin-bottom:10px">${escapeHtml(f.help)}</p>`
+          : "";
       const sourceBadge = `<span class="badge" style="background:var(--bg-3);color:var(--text-3);font-size:9px;padding:1px 5px;vertical-align:middle">${escapeHtml(f.source)}</span>`;
       const provenanceBadge = f.provenance
         ? ` <span class="badge" style="background:var(--bg-3);color:var(--text-3);font-size:9px;padding:1px 5px;vertical-align:middle">${escapeHtml(f.provenance)}</span>`
-        : '';
-      const trustBadge = f.includedInScore === false
-        ? ' <span class="badge" style="background:var(--amber-soft);color:var(--amber);font-size:9px;padding:1px 5px;vertical-align:middle">advisory</span>'
-        : f.trust === 'core'
-          ? ' <span class="badge" style="background:var(--green-soft);color:var(--green);font-size:9px;padding:1px 5px;vertical-align:middle">core</span>'
-          : '';
-      const stabilityBadge = f.stability === 'experimental'
-        ? ' <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span>'
-        : '';
+        : "";
+      const trustBadge =
+        f.includedInScore === false
+          ? ' <span class="badge" style="background:var(--amber-soft);color:var(--amber);font-size:9px;padding:1px 5px;vertical-align:middle">advisory</span>'
+          : f.trust === "core"
+            ? ' <span class="badge" style="background:var(--green-soft);color:var(--green);font-size:9px;padding:1px 5px;vertical-align:middle">core</span>'
+            : "";
+      const stabilityBadge =
+        f.stability === "experimental"
+          ? ' <span class="badge" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-size:9px;padding:1px 5px;vertical-align:middle">experimental</span>'
+          : "";
 
-      allGroups.push({ sev: f.severity, count: items.length, html: `<div class="fgroup" data-cat="${cat}" data-rule="${escapeHtml(rule)}" data-sev="${f.severity}" id="${gid}">
+      allGroups.push({
+        sev: f.severity,
+        count: items.length,
+        html: `<div class="fgroup" data-cat="${cat}" data-rule="${escapeHtml(rule)}" data-sev="${f.severity}" id="${gid}">
         <div class="fgroup-trigger" onclick="toggleGroup('${gid}')">
           <svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
-          <span class="sev-dot ${sevC}" data-tip="${f.severity === 'error' ? 'Error' : 'Warning'}"></span>
+          <span class="sev-dot ${sevC}" data-tip="${f.severity === "error" ? "Error" : "Warning"}"></span>
           <span class="fgroup-title">${escapeHtml(rd?.title ?? f.message)} ${sourceBadge}${provenanceBadge}${trustBadge}${stabilityBadge}</span>
-          <span class="fgroup-count" data-tip="${items.length} affected file${items.length === 1 ? '' : 's'}">${items.length}</span>
+          <span class="fgroup-count" data-tip="${items.length} affected file${items.length === 1 ? "" : "s"}">${items.length}</span>
           ${triggerActions}
         </div>
         <div class="fgroup-body">${doc}${helpText}<div class="files">${files}${moreSection}</div></div>
-      </div>` });
+      </div>`,
+      });
     }
   }
 
@@ -951,11 +1011,14 @@ const buildFindings = (result: ScanResult): string => {
           ${chips}
           <input class="filter-search" type="text" placeholder="Search rules or files…" oninput="filterSearch(this.value)"/>
         </div>
-        <div id="findings-list">${allGroups.sort((a, b) => {
-          const sevOrder = (s: string) => s === 'error' ? 0 : 1;
-          if (sevOrder(a.sev) !== sevOrder(b.sev)) return sevOrder(a.sev) - sevOrder(b.sev);
-          return b.count - a.count;
-        }).map(g => g.html).join('')}</div>
+        <div id="findings-list">${allGroups
+          .sort((a, b) => {
+            const sevOrder = (s: string) => (s === "error" ? 0 : 1);
+            if (sevOrder(a.sev) !== sevOrder(b.sev)) return sevOrder(a.sev) - sevOrder(b.sev);
+            return b.count - a.count;
+          })
+          .map((g) => g.html)
+          .join("")}</div>
       </div>
     </div>
   </div>`;
@@ -1070,6 +1133,7 @@ function openCmd(){
 }
 function closeCmd(){ var o = document.getElementById('cmd-overlay'); if(o) o.classList.remove('open'); cmdOpen = false; }
 
+function escH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function renderCmdResults(q){
   var c = document.getElementById('cmd-results'); if(!c) return;
   var results = [];
@@ -1080,7 +1144,7 @@ function renderCmdResults(q){
   });
   if(!results.length){ c.innerHTML='<div class="cmd-empty">No results found</div>'; return; }
   c.innerHTML = results.slice(0,15).map(function(r){
-    return '<div class="cmd-item" onclick="jumpTo(\\''+r.id+'\\')"><span class="cmd-item-sev" style="background:var(--'+(r.sev==='error'?'red':'amber')+')"></span><span class="cmd-item-title">'+r.title+'</span><span class="cmd-item-cat">'+r.cat+'</span></div>';
+    return '<div class="cmd-item" onclick="jumpTo(\\''+r.id+'\\')"><span class="cmd-item-sev" style="background:var(--'+(r.sev==='error'?'red':'amber')+')"></span><span class="cmd-item-title">'+escH(r.title)+'</span><span class="cmd-item-cat">'+escH(r.cat)+'</span></div>';
   }).join('');
 }
 
@@ -1118,21 +1182,29 @@ const buildHtml = (result: ScanResult, history?: HistoryData): string => {
 ${buildTopBar(result)}
 
 <div class="container">
-  ${result.scanStatus === 'partial' ? `<div style="background:var(--amber-soft);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;margin-top:24px;margin-bottom:-8px;color:var(--amber);font-size:13px;display:flex;align-items:flex-start;gap:8px">
+  ${
+    result.scanStatus === "partial"
+      ? `<div style="background:var(--amber-soft);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px 16px;margin-top:24px;margin-bottom:-8px;color:var(--amber);font-size:13px;display:flex;align-items:flex-start;gap:8px">
     <span style="font-size:16px;line-height:1">⚠</span>
-    <div><strong>Partial scan</strong> — ${result.failedAnalyzers.length} analyzer(s) failed: ${result.failedAnalyzers.map(escapeHtml).join(', ')}. Score may not reflect full project health.</div>
-  </div>` : ''}
+    <div><strong>Partial scan</strong> — ${result.failedAnalyzers.length} analyzer(s) failed: ${result.failedAnalyzers.map(escapeHtml).join(", ")}. Score may not reflect full project health.</div>
+  </div>`
+      : ""
+  }
   ${buildScoreHero(result)}
   ${buildScanMeta(result)}
-  ${hasTrend ? buildTrendCard(history, result.profile) : ''}
+  ${hasTrend ? buildTrendCard(history, result.profile) : ""}
 
-  ${hasBento ? `<div class="bento">
-    ${hasSig ? buildSignalCard(result.signalReadiness) : ''}
-    ${hasDiags ? buildHotspotCard(result.diagnostics) : ''}
-  </div>` : ''}
+  ${
+    hasBento
+      ? `<div class="bento">
+    ${hasSig ? buildSignalCard(result.signalReadiness) : ""}
+    ${hasDiags ? buildHotspotCard(result.diagnostics) : ""}
+  </div>`
+      : ""
+  }
 
-  ${hasAnalyzers ? buildAnalyzerSummary(result) : ''}
-  ${hasRem ? buildRemediation(result) : ''}
+  ${hasAnalyzers ? buildAnalyzerSummary(result) : ""}
+  ${hasRem ? buildRemediation(result) : ""}
   ${buildFindings(result)}
 
 </div>
@@ -1156,11 +1228,10 @@ ${buildScoreMethodology(result)}
 </html>`;
 };
 
-export const generateHtmlReport = (result: ScanResult, history?: HistoryData): string => {
-  const dir = path.join(tmpdir(), `ng-xray-${Date.now()}`);
-  mkdirSync(dir, { recursive: true });
+export const generateHtmlReport = (result: ScanResult, history?: HistoryData, outputPath?: string): string => {
+  const filePath = outputPath ? path.resolve(outputPath) : path.join(tmpdir(), `ng-xray-${Date.now()}`, "report.html");
+  mkdirSync(path.dirname(filePath), { recursive: true });
   const html = buildHtml(result, history);
-  const filePath = path.join(dir, 'report.html');
-  writeFileSync(filePath, html, 'utf-8');
+  writeFileSync(filePath, html, "utf-8");
   return filePath;
 };

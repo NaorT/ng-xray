@@ -1,6 +1,6 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import path from 'node:path';
-import type { ProjectInfo } from '../types.js';
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import type { ProjectInfo } from "../types.js";
 
 interface PackageJson {
   name?: string;
@@ -13,10 +13,10 @@ interface PackageContext {
 }
 
 const readPackageJson = (directory: string): PackageJson | null => {
-  const pkgPath = path.join(directory, 'package.json');
+  const pkgPath = path.join(directory, "package.json");
   if (!existsSync(pkgPath)) return null;
   try {
-    return JSON.parse(readFileSync(pkgPath, 'utf-8')) as PackageJson;
+    return JSON.parse(readFileSync(pkgPath, "utf-8")) as PackageJson;
   } catch {
     return null;
   }
@@ -24,9 +24,9 @@ const readPackageJson = (directory: string): PackageJson | null => {
 
 const getAngularVersion = (pkg: PackageJson): string | null => {
   const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-  const version = allDeps['@angular/core'];
+  const version = allDeps["@angular/core"];
   if (!version) return null;
-  return version.replace(/[\^~>=<]/g, '').split(' ')[0];
+  return version.replace(/[\^~>=<]/g, "").split(" ")[0];
 };
 
 const hasPackage = (pkg: PackageJson, name: string): boolean => {
@@ -62,7 +62,7 @@ const countSourceFiles = (directory: string, extensions: string[]): number => {
     try {
       const entries = readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.git') continue;
+        if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           walk(fullPath);
@@ -84,7 +84,7 @@ const countFilesByPattern = (directory: string, pattern: string): number => {
     try {
       const entries = readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.git') continue;
+        if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           walk(fullPath);
@@ -108,15 +108,22 @@ const detectStandalonePercentage = (directory: string): number => {
     try {
       const entries = readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.git') continue;
+        if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           walk(fullPath);
-        } else if (entry.name.endsWith('.component.ts') || entry.name.endsWith('.directive.ts') || entry.name.endsWith('.pipe.ts')) {
+        } else if (
+          entry.name.endsWith(".component.ts") ||
+          entry.name.endsWith(".directive.ts") ||
+          entry.name.endsWith(".pipe.ts")
+        ) {
           total++;
           try {
-            const content = readFileSync(fullPath, 'utf-8');
-            if (content.includes('standalone') && (content.includes('standalone: true') || content.includes('standalone:true'))) {
+            const content = readFileSync(fullPath, "utf-8");
+            if (
+              content.includes("standalone") &&
+              (content.includes("standalone: true") || content.includes("standalone:true"))
+            ) {
               standaloneCount++;
             }
           } catch {
@@ -139,14 +146,20 @@ const detectSignalsUsage = (directory: string): boolean => {
     try {
       const entries = readdirSync(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.git') continue;
+        if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           if (walk(fullPath)) return true;
-        } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts')) {
+        } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".spec.ts")) {
           try {
-            const content = readFileSync(fullPath, 'utf-8');
-            if (content.includes('signal(') || content.includes('computed(') || content.includes('effect(') || content.includes('input(') || content.includes('output(')) {
+            const content = readFileSync(fullPath, "utf-8");
+            if (
+              content.includes("signal(") ||
+              content.includes("computed(") ||
+              content.includes("effect(") ||
+              content.includes("input(") ||
+              content.includes("output(")
+            ) {
               return true;
             }
           } catch {
@@ -167,9 +180,9 @@ export const discoverProject = (directory: string): ProjectInfo => {
   const pkg = packageContext?.pkg ?? null;
   const projectName = pkg?.name ?? path.basename(directory);
   const angularVersion = pkg ? getAngularVersion(pkg) : null;
-  const hasSSR = pkg ? hasPackage(pkg, '@angular/ssr') || hasPackage(pkg, '@nguniversal/express-engine') : false;
+  const hasSSR = pkg ? hasPackage(pkg, "@angular/ssr") || hasPackage(pkg, "@nguniversal/express-engine") : false;
 
-  const srcDir = existsSync(path.join(directory, 'src')) ? path.join(directory, 'src') : directory;
+  const srcDir = existsSync(path.join(directory, "src")) ? path.join(directory, "src") : directory;
 
   return {
     rootDirectory: directory,
@@ -179,8 +192,8 @@ export const discoverProject = (directory: string): ProjectInfo => {
     hasSignals: detectSignalsUsage(srcDir),
     standalonePercentage: detectStandalonePercentage(srcDir),
     hasTypeScript: true,
-    sourceFileCount: countSourceFiles(srcDir, ['.ts', '.html', '.scss', '.css']),
-    componentCount: countFilesByPattern(srcDir, '.component.ts'),
-    serviceCount: countFilesByPattern(srcDir, '.service.ts'),
+    sourceFileCount: countSourceFiles(srcDir, [".ts", ".html", ".scss", ".css"]),
+    componentCount: countFilesByPattern(srcDir, ".component.ts"),
+    serviceCount: countFilesByPattern(srcDir, ".service.ts"),
   };
 };

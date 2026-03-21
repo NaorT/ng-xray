@@ -1,10 +1,10 @@
-import type { ScanProfile } from './types.js';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import path from 'node:path';
-import type { ScanResult } from './types.js';
+import type { ScanProfile } from "./types.js";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import type { ScanResult } from "./types.js";
 
-const HISTORY_DIR = '.ng-xray';
-const HISTORY_FILENAME = 'history.json';
+const HISTORY_DIR = ".ng-xray";
+const HISTORY_FILENAME = "history.json";
 const MAX_ENTRIES = 100;
 
 export interface HistoryEntry {
@@ -36,7 +36,7 @@ export const loadHistory = (directory: string): HistoryData => {
   const historyPath = getHistoryPath(directory);
   if (!existsSync(historyPath)) return { version: 1, entries: [] };
   try {
-    return JSON.parse(readFileSync(historyPath, 'utf-8'));
+    return JSON.parse(readFileSync(historyPath, "utf-8"));
   } catch {
     return { version: 1, entries: [] };
   }
@@ -56,11 +56,11 @@ export const appendHistory = (directory: string, result: ScanResult): void => {
       result.score.categories.map((c) => [c.category, { score: c.score, issues: c.issueCount }]),
     ),
     totalIssues: result.diagnostics.length,
-    totalErrors: result.diagnostics.filter((d) => d.severity === 'error').length,
-    totalWarnings: result.diagnostics.filter((d) => d.severity === 'warning').length,
+    totalErrors: result.diagnostics.filter((d) => d.severity === "error").length,
+    totalWarnings: result.diagnostics.filter((d) => d.severity === "warning").length,
     filesAffected: uniqueFiles.size,
     elapsedMs: result.elapsedMs,
-    profile: result.profile ?? 'core',
+    profile: result.profile ?? "core",
     scoredDiagnosticsCount: result.scoredDiagnosticsCount,
     advisoryDiagnosticsCount: result.advisoryDiagnosticsCount,
     excludedDiagnosticsCount: result.excludedDiagnosticsCount,
@@ -73,21 +73,21 @@ export const appendHistory = (directory: string, result: ScanResult): void => {
   }
 
   const historyPath = getHistoryPath(directory);
-  writeFileSync(historyPath, JSON.stringify(history, null, 2), 'utf-8');
+  writeFileSync(historyPath, JSON.stringify(history, null, 2), "utf-8");
 };
 
 export const clearHistory = (directory: string): boolean => {
   const historyPath = getHistoryPath(directory);
   if (!existsSync(historyPath)) return false;
-  writeFileSync(historyPath, JSON.stringify({ version: 1, entries: [] }, null, 2), 'utf-8');
+  writeFileSync(historyPath, JSON.stringify({ version: 1, entries: [] }, null, 2), "utf-8");
   return true;
 };
 
 export const getHistoryDelta = (
   history: HistoryData,
-  profile: ScanProfile = 'core',
+  profile: ScanProfile = "core",
 ): { scoreDelta: number; issuesDelta: number } | null => {
-  const entries = history.entries.filter((entry) => (entry.profile ?? 'core') === profile);
+  const entries = history.entries.filter((entry) => (entry.profile ?? "core") === profile);
   if (entries.length < 2) return null;
   const current = entries[entries.length - 1];
   const previous = entries[entries.length - 2];

@@ -1,23 +1,17 @@
-export type Severity = 'error' | 'warning';
-export type DiagnosticSource = 'angular' | 'angular-eslint' | 'eslint' | 'knip' | 'ng-xray';
-export type DiagnosticStability = 'stable' | 'experimental';
-export type DiagnosticTrust = 'core' | 'advisory';
+export type Severity = "error" | "warning";
+export type DiagnosticSource = "angular" | "angular-eslint" | "eslint" | "knip" | "ng-xray";
+export type DiagnosticStability = "stable" | "experimental";
+export type DiagnosticTrust = "core" | "advisory";
 export type DiagnosticProvenance =
-  | 'angular-compiler'
-  | 'project-eslint'
-  | 'project-knip'
-  | 'ng-xray-knip-fallback'
-  | 'ng-xray-native-stable'
-  | 'ng-xray-built-in-lint'
-  | 'ng-xray-heuristic';
-export type ScanProfile = 'core' | 'all';
+  | "angular-compiler"
+  | "project-eslint"
+  | "project-knip"
+  | "ng-xray-native-stable"
+  | "ng-xray-built-in-lint"
+  | "ng-xray-heuristic";
+export type ScanProfile = "core" | "all";
 
-export type Category =
-  | 'best-practices'
-  | 'performance'
-  | 'architecture'
-  | 'dead-code'
-  | 'security';
+export type Category = "best-practices" | "performance" | "architecture" | "dead-code" | "security";
 
 export interface Diagnostic {
   filePath: string;
@@ -65,7 +59,7 @@ export interface ScoreResult {
 }
 
 export interface RemediationItem {
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
   rule: string;
   description: string;
   estimatedScoreImpact: number;
@@ -76,7 +70,7 @@ export interface RemediationItem {
 export interface SignalReadinessReport {
   score: number;
   counts: Record<string, { legacy: number; modern: number }>;
-  migrationPlan: { pattern: string; count: number; effort: 'low' | 'medium' | 'high'; description: string }[];
+  migrationPlan: { pattern: string; count: number; effort: "low" | "medium" | "high"; description: string }[];
 }
 
 export interface BoundaryRule {
@@ -99,7 +93,7 @@ export interface DeepImportRule {
   message?: string;
 }
 
-export type ArchitecturePreset = 'angular-feature-shell' | 'angular-domain-driven';
+export type ArchitecturePreset = "angular-feature-shell" | "angular-domain-driven";
 
 export interface ArchitectureAnalyzerConfig {
   featurePaths?: string[];
@@ -113,16 +107,16 @@ export interface ArchitectureAnalyzerConfig {
 export interface AnalyzerRunInfo {
   id: string;
   label: string;
-  status: 'ran' | 'failed' | 'skipped';
+  status: "ran" | "failed" | "skipped";
   findingsCount: number;
   durationMs: number;
   experimental: boolean;
   errorMessage?: string;
-  skipReason?: 'disabled' | 'not-applicable' | 'unsupported';
+  skipReason?: "disabled" | "not-applicable" | "unsupported";
 }
 
 export interface ScanResult {
-  scanStatus: 'complete' | 'partial';
+  scanStatus: "complete" | "partial";
   failedAnalyzers: string[];
   diagnostics: Diagnostic[];
   score: ScoreResult;
@@ -146,11 +140,8 @@ export interface ScanOptions {
   performance?: boolean;
   profile?: ScanProfile;
   verbose?: boolean;
-  scoreOnly?: boolean;
-  json?: boolean;
-  noOpen?: boolean;
-  includePaths?: string[];
   ignoreBaseline?: boolean;
+  noExec?: boolean;
 }
 
 export interface NgXrayConfig {
@@ -159,7 +150,7 @@ export interface NgXrayConfig {
     files?: string[];
   };
   thresholds?: {
-    'component-loc'?: number;
+    "component-loc"?: number;
   };
   lint?: boolean;
   deadCode?: boolean;

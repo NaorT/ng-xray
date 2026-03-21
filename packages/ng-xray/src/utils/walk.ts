@@ -1,8 +1,8 @@
-import { readdirSync } from 'node:fs';
-import path from 'node:path';
-import { logger } from './logger.js';
+import { readdirSync } from "node:fs";
+import path from "node:path";
+import { logger } from "./logger.js";
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.git']);
+const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 
 export const walkFiles = (
   dir: string,
@@ -22,8 +22,8 @@ export const walkFiles = (
         if (entry.isDirectory()) {
           recurse(fullPath);
         } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
-          if (skipTests && (entry.name.endsWith('.spec.ts') || entry.name.endsWith('.test.ts'))) continue;
-          if (skipDeclarations && entry.name.endsWith('.d.ts')) continue;
+          if (skipTests && (entry.name.endsWith(".spec.ts") || entry.name.endsWith(".test.ts"))) continue;
+          if (skipDeclarations && entry.name.endsWith(".d.ts")) continue;
           results.push(fullPath);
         }
       }

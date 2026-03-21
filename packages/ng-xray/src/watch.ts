@@ -1,11 +1,10 @@
-import path from 'node:path';
-import { existsSync } from 'node:fs';
-import type { Diagnostic, ScanOptions } from './types.js';
-import { scan } from './scan.js';
-import { logger } from './utils/logger.js';
+import path from "node:path";
+import { existsSync } from "node:fs";
+import type { Diagnostic, ScanOptions } from "./types.js";
+import { scan } from "./scan.js";
+import { logger } from "./utils/logger.js";
 
-export const fingerprintDiag = (d: Diagnostic): string =>
-  `${d.rule}::${d.filePath}::${d.line}`;
+export const fingerprintDiag = (d: Diagnostic): string => `${d.rule}::${d.filePath}::${d.line}`;
 
 export const diffDiagnostics = (
   previous: Diagnostic[],
@@ -25,12 +24,12 @@ const printWatchDelta = (score: number, added: Diagnostic[], removed: Diagnostic
   logger.break();
 
   if (added.length === 0 && removed.length === 0) {
-    logger.dim('  No changes since last scan.');
+    logger.dim("  No changes since last scan.");
     return;
   }
 
   if (added.length > 0) {
-    logger.error(`  +${added.length} new issue${added.length > 1 ? 's' : ''}`);
+    logger.error(`  +${added.length} new issue${added.length > 1 ? "s" : ""}`);
     for (const d of added.slice(0, 10)) {
       logger.dim(`    ${d.rule} — ${d.filePath}:${d.line}`);
     }
@@ -38,7 +37,7 @@ const printWatchDelta = (score: number, added: Diagnostic[], removed: Diagnostic
   }
 
   if (removed.length > 0) {
-    logger.success(`  -${removed.length} resolved issue${removed.length > 1 ? 's' : ''}`);
+    logger.success(`  -${removed.length} resolved issue${removed.length > 1 ? "s" : ""}`);
     for (const d of removed.slice(0, 5)) {
       logger.dim(`    ${d.rule} — ${d.filePath}:${d.line}`);
     }
@@ -46,25 +45,18 @@ const printWatchDelta = (score: number, added: Diagnostic[], removed: Diagnostic
   }
 };
 
-export const resolveWatchPath = (
-  directory: string,
-  sourceRoot?: string,
-): string => {
+export const resolveWatchPath = (directory: string, sourceRoot?: string): string => {
   if (sourceRoot) return sourceRoot;
-  const conventionalSrc = path.join(directory, 'src');
+  const conventionalSrc = path.join(directory, "src");
   return existsSync(conventionalSrc) ? conventionalSrc : directory;
 };
 
-export const startWatch = async (
-  directory: string,
-  options: ScanOptions,
-  sourceRoot?: string,
-): Promise<void> => {
-  let chokidar: typeof import('chokidar');
+export const startWatch = async (directory: string, options: ScanOptions, sourceRoot?: string): Promise<void> => {
+  let chokidar: typeof import("chokidar");
   try {
-    chokidar = await import('chokidar');
+    chokidar = await import("chokidar");
   } catch {
-    logger.error('Watch mode requires chokidar. Run: npm install chokidar');
+    logger.error("Watch mode requires chokidar. Run: npm install chokidar");
     process.exit(1);
   }
 
@@ -81,28 +73,28 @@ export const startWatch = async (
     }
   };
 
-  logger.log('Running initial scan...');
+  logger.log("Running initial scan...");
   await runAndDiff();
 
   const watchPath = resolveWatchPath(directory, sourceRoot);
   const watcher = chokidar.watch(watchPath, {
-    ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
+    ignored: ["**/node_modules/**", "**/dist/**", "**/.git/**"],
     ignoreInitial: true,
     persistent: true,
   });
 
   let timeout: ReturnType<typeof setTimeout> | undefined;
-  watcher.on('all', () => {
+  watcher.on("all", () => {
     clearTimeout(timeout);
     timeout = setTimeout(runAndDiff, 500);
   });
 
-  logger.dim('  Watching for changes... (Ctrl+C to stop)');
+  logger.dim("  Watching for changes... (Ctrl+C to stop)");
 
-  process.on('SIGINT', () => {
+  process.on("SIGINT", () => {
     watcher.close();
     logger.break();
-    logger.log('Watch mode stopped.');
+    logger.log("Watch mode stopped.");
     process.exit(0);
   });
 };
